@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guardian AI - Private Terminal</title>
+    <title>Guardian AI - Private Terminal v2.0</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -16,9 +16,9 @@
         .privacy-hidden {
             background-color: #30363d !important;
             color: transparent !important;
-            border-radius: 8px;
+            border-radius: 6px;
             display: inline-block;
-            min-width: 140px;
+            min-width: 100px;
             height: 1.2em;
             vertical-align: middle;
             pointer-events: none;
@@ -26,7 +26,7 @@
         
         h2.privacy-hidden { min-width: 280px; height: 60px; }
 
-        /* DESIGN: BORDAS REDONDAS */
+        /* DESIGN PRESERVADO */
         .rounded-terminal { border-radius: 24px; }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid rgba(48, 54, 61, 0.5); border-radius: 16px; }
         
@@ -39,14 +39,14 @@
     <div class="max-w-6xl mx-auto">
         <nav class="flex justify-between items-center mb-10">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
+                <div class="bg-blue-600 p-2 rounded-xl shadow-lg">
                     <i data-lucide="zap" class="w-6 h-6 text-white fill-white"></i>
                 </div>
                 <h1 class="text-2xl font-black italic uppercase text-white tracking-tighter">Guardian<span class="text-blue-500 font-normal">AI</span></h1>
             </div>
             <div class="flex items-center gap-4 bg-[#161b22] px-6 py-3 rounded-2xl border border-[#30363d]">
                 <div id="conn-status" class="w-2.5 h-2.5 bg-red-500 rounded-full transition-all duration-500"></div>
-                <span id="usd-price" class="text-xs font-bold text-white border-l border-[#30363d] pl-4">R$ 0.00</span>
+                <span id="usd-price" class="text-xs font-bold text-white border-l border-[#30363d] pl-4 uppercase">R$ 0.00</span>
             </div>
         </nav>
 
@@ -55,7 +55,7 @@
                 <div class="bg-[#161b22] border border-[#30363d] rounded-terminal p-8 shadow-2xl relative overflow-hidden">
                     <div class="flex justify-between items-center mb-2">
                         <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Patrimônio Líquido</p>
-                        <button onclick="togglePrivacy()" class="text-gray-500 hover:text-white transition-all p-1">
+                        <button onclick="togglePrivacy()" class="text-gray-500 hover:text-white transition-all">
                             <i id="privacy-icon" data-lucide="eye" class="w-5 h-5"></i>
                         </button>
                     </div>
@@ -67,55 +67,58 @@
                     <span class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
                     <h3 class="text-gray-500 font-bold uppercase text-[10px] tracking-[0.3em]">Live Intelligence Feed</h3>
                 </div>
-                
-                <div id="signal-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="signal-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+                <div class="mt-12">
+                    <h3 class="text-gray-500 font-bold uppercase text-[10px] tracking-[0.3em] flex items-center gap-2 mb-6">
+                        <i data-lucide="history" class="w-3 h-3 text-blue-500"></i> Auditoria de Execução
+                    </h3>
+                    <div class="bg-[#161b22] border border-[#30363d] rounded-terminal overflow-hidden shadow-xl">
+                        <table class="w-full text-left text-[11px]">
+                            <thead class="bg-black/20 text-gray-500 uppercase font-black text-[9px] border-b border-[#30363d]">
+                                <tr>
+                                    <th class="px-6 py-4 italic">Ativo</th>
+                                    <th class="px-6 py-4 italic">Resultado</th>
+                                    <th class="px-6 py-4 italic text-right">Valor Lucro</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-body" class="divide-y divide-[#30363d]">
+                                </tbody>
+                        </table>
                     </div>
+                </div>
             </section>
 
             <aside class="space-y-6">
                 <div id="auto-panel" class="bg-gradient-to-br from-green-600 to-green-800 rounded-terminal p-6 text-white shadow-2xl transition-all duration-700">
-                    <div class="flex justify-between items-center mb-6">
-                        <span class="text-[10px] font-black uppercase tracking-widest opacity-70">Sistema Guardian</span>
-                        <i data-lucide="shield-check" class="w-5 h-5"></i>
-                    </div>
                     <h4 id="mode-text" class="text-2xl font-black italic mb-4 uppercase">Automático</h4>
-                    
                     <div class="space-y-4 pt-4 border-t border-white/10">
-                        <div class="flex justify-between text-[10px] font-bold uppercase">
-                            <span>Drawdown (Máx 02)</span>
-                            <span id="loss-count">0 / 2</span>
-                        </div>
+                        <div class="flex justify-between text-[10px] font-bold uppercase"><span>Drawdown</span><span id="loss-count">0 / 2</span></div>
                         <div class="w-full bg-black/30 h-1.5 rounded-full overflow-hidden">
                             <div id="loss-progress" class="bg-white h-full transition-all duration-1000" style="width: 0%"></div>
                         </div>
-                        <button onclick="manualResetLosses()" class="w-full mt-2 bg-black/20 hover:bg-black/40 text-[9px] font-black uppercase py-3 rounded-xl border border-white/10 transition-all">
-                            Resetar Trava Manual
-                        </button>
+                        <button onclick="manualResetLosses()" class="w-full mt-2 bg-black/20 py-3 rounded-xl text-[9px] font-black uppercase border border-white/10">Resetar Trava</button>
                     </div>
                 </div>
 
                 <div class="bg-[#161b22] border border-[#30363d] rounded-terminal p-6 shadow-xl space-y-4">
-                    <div class="flex justify-between items-center border-b border-[#30363d] pb-3">
-                        <h4 class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Visão Macro Patrimonial</h4>
-                        <i data-lucide="wallet" class="w-3.5 h-3.5 text-gray-500"></i>
-                    </div>
-                    
+                    <h4 class="text-[10px] font-black text-blue-500 uppercase tracking-widest border-b border-[#30363d] pb-3">Visão Macro</h4>
                     <div class="grid grid-cols-1 gap-3">
-                        <div class="card-inner p-4 flex justify-between items-center">
-                            <p class="text-[8px] font-bold text-gray-500 uppercase italic">Bruto Histórico</p>
-                            <span id="wallet-bruto" class="text-sm font-black text-white privacy-toggle italic">R$ 0.00</span>
+                        <div class="card-inner p-4 flex justify-between items-center text-white">
+                            <p class="text-[8px] font-bold text-gray-500 uppercase">Bruto</p>
+                            <span id="wallet-bruto" class="text-sm font-black privacy-toggle">R$ 0.00</span>
                         </div>
-                        <div class="card-inner p-4 flex justify-between items-center">
-                            <p class="text-[8px] font-bold text-green-400 uppercase italic">Lucro Real</p>
-                            <span id="wallet-liquido" class="text-sm font-black text-white privacy-toggle italic">R$ 0.00</span>
+                        <div class="card-inner p-4 flex justify-between items-center text-white">
+                            <p class="text-[8px] font-bold text-green-400 uppercase">Lucro Real</p>
+                            <span id="wallet-liquido" class="text-sm font-black privacy-toggle">R$ 0.00</span>
                         </div>
-                        <div class="card-inner p-4 flex justify-between items-center border-l-2 border-yellow-500/30">
-                            <p class="text-[8px] font-bold text-yellow-500 uppercase italic">Reinvestimento</p>
-                            <span id="wallet-reinvestir" class="text-sm font-black text-white privacy-toggle italic">R$ 0.00</span>
+                        <div class="card-inner p-4 flex justify-between items-center text-white border-l-2 border-yellow-500/30">
+                            <p class="text-[8px] font-bold text-yellow-500 uppercase">Reinvestimento</p>
+                            <span id="wallet-reinvestir" class="text-sm font-black privacy-toggle">R$ 0.00</span>
                         </div>
-                        <div class="card-inner p-4 flex justify-between items-center border-l-2 border-purple-500/30">
-                            <p class="text-[8px] font-bold text-purple-400 uppercase italic">Reserva de Segurança</p>
-                            <span id="wallet-guardado" class="text-sm font-black text-white privacy-toggle italic">R$ 0.00</span>
+                        <div class="card-inner p-4 flex justify-between items-center text-white border-l-2 border-purple-500/30">
+                            <p class="text-[8px] font-bold text-purple-400 uppercase">Reserva</p>
+                            <span id="wallet-guardado" class="text-sm font-black privacy-toggle">R$ 0.00</span>
                         </div>
                     </div>
                 </div>
@@ -135,7 +138,6 @@
 
         let sbClient, isPrivate = false, chartData = [];
 
-        // PRIVACIDADE: MODO BLINDADO
         function togglePrivacy() {
             isPrivate = !isPrivate;
             const elements = document.querySelectorAll('.privacy-toggle');
@@ -145,36 +147,24 @@
             lucide.createIcons();
         }
 
-        // INICIALIZAÇÃO REALTIME
         async function init() {
             try {
                 sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
                 lucide.createIcons();
-                
-                // Conexão bem-sucedida
-                const dot = document.getElementById('conn-status');
-                dot.className = "w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]";
+                document.getElementById('conn-status').className = "w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse";
 
                 await fetchBanca();
                 await fetchLatestSignals();
                 await fetchChartHistory();
+                await fetchHistoryTable();
                 fetchUSD();
 
-                // CANAIS REALTIME (Atualiza sem F5)
-                sbClient.channel('any').on('postgres_changes', { event: '*', schema: 'public', table: 'perfil_usuario' }, () => {
-                    console.log("Atualização de Perfil recebida!");
-                    fetchBanca();
-                }).subscribe();
+                // REALTIME SUBSCRIPTIONS
+                sbClient.channel('any').on('postgres_changes', { event: '*', schema: 'public', table: 'perfil_usuario' }, () => fetchBanca()).subscribe();
+                sbClient.channel('news').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'log_oportunidades' }, () => fetchLatestSignals()).subscribe();
+                sbClient.channel('audit').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'historico_operacoes' }, () => fetchHistoryTable()).subscribe();
 
-                sbClient.channel('news').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'log_oportunidades' }, () => {
-                    console.log("Novo Sinal recebido!");
-                    fetchLatestSignals();
-                }).subscribe();
-
-                setInterval(fetchUSD, 60000);
-            } catch (e) { 
-                console.error("Erro na inicialização:", e);
-            }
+            } catch (e) { console.error("Erro Init:", e); }
         }
 
         async function fetchBanca() {
@@ -185,59 +175,65 @@
                 document.getElementById('wallet-liquido').innerText = `R$ ${data.lucro_total.toFixed(2)}`;
                 document.getElementById('wallet-reinvestir').innerText = `R$ ${data.valor_reinvestimento.toFixed(2)}`;
                 document.getElementById('wallet-guardado').innerText = `R$ ${data.total_guardado.toFixed(2)}`;
-                
-                // Drawdown Logic
                 document.getElementById('loss-count').innerText = `${data.perdas_hoje} / 2`;
                 document.getElementById('loss-progress').style.width = `${(data.perdas_hoje / 2) * 100}%`;
-                
                 const isLocked = data.perdas_hoje >= 2 || !data.automacao_ativa;
-                const panel = document.getElementById('auto-panel');
-                panel.className = isLocked ? 
-                    "bg-gradient-to-br from-red-600 to-red-900 rounded-terminal p-6 text-white shadow-2xl transition-all duration-700" : 
-                    "bg-gradient-to-br from-green-600 to-green-800 rounded-terminal p-6 text-white shadow-2xl transition-all duration-700";
+                document.getElementById('auto-panel').className = isLocked ? "bg-gradient-to-br from-red-600 to-red-900 rounded-terminal p-6 text-white shadow-2xl transition-all" : "bg-gradient-to-br from-green-600 to-green-800 rounded-terminal p-6 text-white shadow-2xl transition-all";
                 document.getElementById('mode-text').innerText = isLocked ? "Manual (Travado)" : "Automático";
             }
         }
 
-        async function fetchChartHistory() {
-            const { data } = await sbClient.from('historico_banca').select('valor_banca, data_registro').order('data_registro', { ascending: true }).limit(20);
+        async function fetchHistoryTable() {
+            const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(5);
             if (data) {
-                chartData = data.map(p => ({ 
-                    time: new Date(p.data_registro).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
-                    valor: parseFloat(p.valor_banca) 
-                }));
-                renderChart();
+                const container = document.getElementById('history-body');
+                container.innerHTML = data.map(op => `
+                    <tr class="hover:bg-white/[0.02] transition-colors">
+                        <td class="px-6 py-4 font-black text-white italic">${op.ativo}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-0.5 rounded text-[9px] font-bold ${op.resultado === 'WIN' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}">
+                                ${op.resultado}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-right font-black ${op.resultado === 'WIN' ? 'text-green-500' : 'text-red-500'}">
+                            <span class="privacy-toggle ${isPrivate ? 'privacy-hidden' : ''}">
+                                ${op.resultado === 'WIN' ? '+' : ''}${op.valor_resultado.toFixed(2)}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
             }
         }
 
         function renderChart() {
             const container = document.getElementById('chart-terminal');
             if (!container || typeof Recharts === 'undefined' || typeof ReactDOM === 'undefined') {
-                setTimeout(renderChart, 1000); // Aguarda motor React
-                return;
+                setTimeout(renderChart, 1000); return;
             }
             const { AreaChart, Area, ResponsiveContainer, YAxis } = Recharts;
             const root = ReactDOM.createRoot(container);
-            root.render(React.createElement(ResponsiveContainer, { width: '100%', height: '100%' }, 
-                React.createElement(AreaChart, { data: chartData }, 
-                    React.createElement(YAxis, { hide: true, domain: ['dataMin - 1', 'dataMax + 1'] }), 
-                    React.createElement(Area, { type: 'monotone', dataKey: 'valor', stroke: '#3b82f6', fill: '#3b82f622', strokeWidth: 3 })
-                )
-            ));
+            root.render(React.createElement(ResponsiveContainer, { width: '100%', height: '100%' }, React.createElement(AreaChart, { data: chartData }, React.createElement(YAxis, { hide: true, domain: ['dataMin - 1', 'dataMax + 1'] }), React.createElement(Area, { type: 'monotone', dataKey: 'valor', stroke: '#3b82f6', fill: '#3b82f622', strokeWidth: 3 }))));
+        }
+
+        async function fetchChartHistory() {
+            const { data } = await sbClient.from('historico_banca').select('valor_banca, data_registro').order('data_registro', { ascending: true }).limit(20);
+            if (data) {
+                chartData = data.map(p => ({ time: new Date(p.data_registro).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), valor: parseFloat(p.valor_banca) }));
+                renderChart();
+            }
         }
 
         async function fetchLatestSignals() {
             const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false }).limit(10);
             if (data) {
-                const container = document.getElementById('signal-container');
-                container.innerHTML = data.map(item => `
-                    <div class="bg-[#161b22] border border-[#30363d] p-6 rounded-2xl hover:border-blue-500/50 transition-all duration-300 shadow-lg">
-                        <div class="flex justify-between items-start mb-4">
-                            <span class="font-black text-xl text-white italic uppercase tracking-tighter">${item.ativo}</span>
-                            <span class="text-[10px] font-black ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'} bg-black/30 px-2 py-1 rounded-md border border-white/5">${item.score_confianca}/10</span>
+                document.getElementById('signal-container').innerHTML = data.map(item => `
+                    <div class="bg-[#161b22] border border-[#30363d] p-6 rounded-2xl shadow-lg">
+                        <div class="flex justify-between items-start mb-4 text-white">
+                            <span class="font-black text-xl italic uppercase">${item.ativo}</span>
+                            <span class="text-[10px] font-black ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'}">${item.score_confianca}/10</span>
                         </div>
-                        <p class="text-[11px] text-gray-400 leading-relaxed italic mb-6 line-clamp-2">"${item.motivo_fato_relevante}"</p>
-                        <button class="w-full bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-black py-2.5 rounded-full uppercase transition-colors tracking-widest">Executar Ordem</button>
+                        <p class="text-[11px] text-gray-400 mb-6 italic line-clamp-2">"${item.motivo_fato_relevante}"</p>
+                        <button class="w-full bg-blue-600 text-white text-[9px] font-black py-2 rounded-full uppercase">Executar</button>
                     </div>`).join('');
                 lucide.createIcons();
             }
@@ -253,9 +249,7 @@
 
         async function manualResetLosses() {
             const { data } = await sbClient.from('perfil_usuario').select('id').single();
-            if (data) {
-                await sbClient.from('perfil_usuario').update({ perdas_hoje: 0, automacao_ativa: true }).eq('id', data.id);
-            }
+            if (data) await sbClient.from('perfil_usuario').update({ perdas_hoje: 0, automacao_ativa: true }).eq('id', data.id);
         }
 
         window.onload = init;
