@@ -3,16 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guardian AI - Terminal v2.4 (Diagnostics)</title>
+    <title>Guardian AI - Terminal v2.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { background-color: #0d1117; color: #e6edf3; font-family: 'Inter', sans-serif; overflow-x: hidden; }
         .privacy-hidden { background-color: #30363d !important; color: transparent !important; border-radius: 6px; display: inline-block; min-width: 100px; height: 1.2em; vertical-align: middle; pointer-events: none; }
-        h2.privacy-hidden { min-width: 280px; height: 60px; }
         .rounded-terminal { border-radius: 24px; }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid rgba(48, 54, 61, 0.5); border-radius: 16px; }
+        
+        /* SISTEMA DE EXPANSÃO TÉCNICA */
+        .signal-card { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; max-height: 185px; overflow: hidden; position: relative; }
+        .signal-card.expanded { max-height: 1500px; border-color: #3b82f6; box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5); }
+        .signal-card::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 50px; background: linear-gradient(transparent, #161b22); transition: opacity 0.3s; pointer-events: none; }
+        .signal-card.expanded::after { opacity: 0; }
+        .line-clamp-custom { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .expanded .line-clamp-custom { -webkit-line-clamp: unset; }
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 10px; }
     </style>
@@ -21,12 +29,12 @@
     <div class="max-w-6xl mx-auto">
         <nav class="flex justify-between items-center mb-10">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20"><i data-lucide="zap" class="w-6 h-6 text-white fill-white"></i></div>
+                <div class="bg-blue-600 p-2 rounded-xl shadow-lg"><i data-lucide="zap" class="w-6 h-6 text-white fill-white"></i></div>
                 <h1 class="text-2xl font-black italic uppercase text-white tracking-tighter">Guardian<span class="text-blue-500 font-normal">AI</span></h1>
             </div>
             <div class="flex items-center gap-4 bg-[#161b22] px-6 py-3 rounded-2xl border border-[#30363d]">
                 <div id="conn-status" class="w-2.5 h-2.5 bg-red-500 rounded-full transition-all duration-500"></div>
-                <span id="usd-price" class="text-xs font-bold text-white border-l border-[#30363d] pl-4 uppercase">R$ 0.00</span>
+                <span id="usd-price" class="text-xs font-bold text-white border-l border-[#30363d] pl-4 uppercase tracking-tighter">R$ 0.00</span>
             </div>
         </nav>
 
@@ -44,11 +52,11 @@
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-2">
                         <span class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
-                        <h3 class="text-gray-500 font-bold uppercase text-[10px] tracking-[0.3em]">Live Intelligence Feed</h3>
+                        <h3 class="text-gray-500 font-bold uppercase text-[10px] tracking-[0.3em]">Technical Insight Engine</h3>
                     </div>
                     <span id="signal-count" class="text-[9px] text-gray-600 font-black uppercase">0 Sinais Hoje</span>
                 </div>
-                <div id="signal-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center py-10 text-gray-600 italic text-sm">Aguardando sinais de alta relevância...</div>
+                <div id="signal-container" class="grid grid-cols-1 gap-6"></div>
 
                 <div class="mt-12">
                     <h3 class="text-gray-500 font-bold uppercase text-[10px] tracking-[0.3em] flex items-center gap-2 mb-6"><i data-lucide="history" class="w-3 h-3 text-blue-500"></i> Auditoria de Execução</h3>
@@ -65,17 +73,17 @@
 
             <aside class="space-y-6">
                 <div id="auto-panel" class="bg-gradient-to-br from-green-600 to-green-800 rounded-terminal p-6 text-white shadow-2xl transition-all duration-700">
-                    <h4 id="mode-text" class="text-2xl font-black italic mb-4 uppercase">Automático</h4>
+                    <h4 id="mode-text" class="text-2xl font-black italic mb-4 uppercase text-white">Automático</h4>
                     <div class="space-y-4 pt-4 border-t border-white/10">
-                        <div class="flex justify-between text-[10px] font-bold uppercase"><span>Drawdown</span><span id="loss-count">0 / 2</span></div>
+                        <div class="flex justify-between text-[10px] font-bold uppercase text-white"><span>Drawdown</span><span id="loss-count">0 / 2</span></div>
                         <div class="w-full bg-black/30 h-1.5 rounded-full overflow-hidden"><div id="loss-progress" class="bg-white h-full transition-all duration-1000" style="width: 0%"></div></div>
-                        <button onclick="manualResetLosses()" class="w-full mt-2 bg-black/20 py-3 rounded-xl text-[9px] font-black uppercase border border-white/10 text-white font-black">Resetar Trava</button>
+                        <button onclick="manualResetLosses()" class="w-full mt-2 bg-black/20 py-3 rounded-xl text-[9px] font-black uppercase border border-white/10 text-white">Resetar Trava</button>
                     </div>
                 </div>
 
                 <div class="bg-[#161b22] border border-[#30363d] rounded-terminal p-6 shadow-xl space-y-4">
                     <div class="flex justify-between items-center">
-                        <h4 class="text-[10px] font-black text-blue-500 uppercase tracking-widest text-blue-500">Meta do Dia</h4>
+                        <h4 class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Meta do Dia</h4>
                         <span id="target-percent" class="text-[10px] font-black text-blue-400">0%</span>
                     </div>
                     <div class="w-full bg-black/40 h-3 rounded-full overflow-hidden p-0.5 border border-white/5">
@@ -84,13 +92,13 @@
                     <p class="text-[8px] text-gray-500 font-bold uppercase text-center italic">Alvo: <span id="target-value">R$ 0.00</span></p>
                 </div>
 
-                <div class="bg-[#161b22] border border-[#30363d] rounded-terminal p-6 shadow-xl space-y-4">
+                <div class="bg-[#161b22] border border-[#30363d] rounded-terminal p-6 shadow-xl space-y-4 text-white">
                     <h4 class="text-[10px] font-black text-blue-500 uppercase tracking-widest border-b border-[#30363d] pb-3 text-blue-500">Visão Macro</h4>
                     <div class="grid grid-cols-1 gap-3">
-                        <div class="card-inner p-4 flex justify-between items-center text-white"><p class="text-[8px] font-bold text-gray-500 uppercase italic">Bruto</p><span id="wallet-bruto" class="text-sm font-black privacy-toggle">R$ 0.00</span></div>
-                        <div class="card-inner p-4 flex justify-between items-center text-white"><p class="text-[8px] font-bold text-green-400 uppercase italic">Lucro Real</p><span id="wallet-liquido" class="text-sm font-black privacy-toggle">R$ 0.00</span></div>
-                        <div class="card-inner p-4 flex justify-between items-center text-white border-l-2 border-yellow-500/30"><p class="text-[8px] font-bold text-yellow-500 uppercase italic">Reinvestimento</p><span id="wallet-reinvestir" class="text-sm font-black privacy-toggle">R$ 0.00</span></div>
-                        <div class="card-inner p-4 flex justify-between items-center text-white border-l-2 border-purple-500/30"><p class="text-[8px] font-bold text-purple-400 uppercase italic">Reserva</p><span id="wallet-guardado" class="text-sm font-black privacy-toggle">R$ 0.00</span></div>
+                        <div class="card-inner p-4 flex justify-between items-center"><p class="text-[8px] font-bold text-gray-500 uppercase italic">Bruto</p><span id="wallet-bruto" class="text-sm font-black privacy-toggle italic">R$ 0.00</span></div>
+                        <div class="card-inner p-4 flex justify-between items-center"><p class="text-[8px] font-bold text-green-400 uppercase italic">Lucro Real</p><span id="wallet-liquido" class="text-sm font-black privacy-toggle italic">R$ 0.00</span></div>
+                        <div class="card-inner p-4 flex justify-between items-center border-l-2 border-yellow-500/30"><p class="text-[8px] font-bold text-yellow-500 uppercase italic">Reinvestimento</p><span id="wallet-reinvestir" class="text-sm font-black privacy-toggle italic">R$ 0.00</span></div>
+                        <div class="card-inner p-4 flex justify-between items-center border-l-2 border-purple-500/30"><p class="text-[8px] font-bold text-purple-400 uppercase italic">Reserva</p><span id="wallet-guardado" class="text-sm font-black privacy-toggle italic">R$ 0.00</span></div>
                     </div>
                 </div>
             </aside>
@@ -117,16 +125,12 @@
                 sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
                 lucide.createIcons();
                 document.getElementById('conn-status').className = "w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]";
-
                 await Promise.all([fetchBanca(), fetchLatestSignals(), fetchChartHistory(), fetchHistoryTable()]);
                 fetchUSD();
-
-                sbClient.channel('db-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'perfil_usuario' }, fetchBanca).subscribe();
-                sbClient.channel('news-changes').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'log_oportunidades' }, fetchLatestSignals).subscribe();
-                sbClient.channel('audit-changes').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'historico_operacoes' }, () => { fetchHistoryTable(); fetchBanca(); }).subscribe();
-
-                setInterval(fetchUSD, 60000);
-            } catch (e) { console.error("Init Error:", e); }
+                sbClient.channel('db').on('postgres_changes', { event: '*', schema: 'public', table: 'perfil_usuario' }, fetchBanca).subscribe();
+                sbClient.channel('news').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'log_oportunidades' }, fetchLatestSignals).subscribe();
+                sbClient.channel('audit').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'historico_operacoes' }, () => { fetchHistoryTable(); fetchBanca(); }).subscribe();
+            } catch (e) { console.error(e); }
         }
 
         async function fetchBanca() {
@@ -137,23 +141,51 @@
                 document.getElementById('wallet-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
                 document.getElementById('wallet-reinvestir').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
                 document.getElementById('wallet-guardado').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
-                
-                const now = new Date();
-                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+                const today = new Date().toISOString().split('T')[0];
                 const { data: opsHoje } = await sbClient.from('historico_operacoes').select('valor_resultado').eq('resultado', 'WIN').gte('executado_em', today);
                 const lucroHoje = (opsHoje || []).reduce((acc, cur) => acc + Number(cur.valor_resultado), 0);
                 const meta = Number(data.meta_diaria) || 50.00;
                 const pct = Math.min((lucroHoje / meta) * 100, 100);
-                
                 document.getElementById('target-progress').style.width = `${pct}%`;
                 document.getElementById('target-percent').innerText = `${Math.round(pct)}%`;
                 document.getElementById('target-value').innerText = `R$ ${meta.toFixed(2)}`;
-                
                 document.getElementById('loss-count').innerText = `${data.perdas_hoje} / 2`;
                 document.getElementById('loss-progress').style.width = `${(data.perdas_hoje / 2) * 100}%`;
                 const isLocked = data.perdas_hoje >= 2 || !data.automacao_ativa;
                 document.getElementById('auto-panel').className = isLocked ? "bg-gradient-to-br from-red-600 to-red-900 rounded-terminal p-6 text-white shadow-2xl transition-all" : "bg-gradient-to-br from-green-600 to-green-800 rounded-terminal p-6 text-white shadow-2xl transition-all";
                 document.getElementById('mode-text').innerText = isLocked ? "Manual (Travado)" : "Automático";
+            }
+        }
+
+        async function fetchLatestSignals() {
+            const today = new Date().toISOString().split('T')[0];
+            const { data, count } = await sbClient.from('log_oportunidades').select('*', { count: 'exact' }).gte('created_at', today).order('created_at', { ascending: false });
+            document.getElementById('signal-count').innerText = `${count || 0} Sinais Hoje`;
+            const container = document.getElementById('signal-container');
+            if (data && data.length > 0) {
+                container.innerHTML = data.map(item => `
+                    <div onclick="this.classList.toggle('expanded')" class="signal-card bg-[#161b22] border border-[#30363d] p-6 rounded-2xl shadow-xl hover:border-blue-500/30">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <span class="font-black text-2xl text-white italic uppercase tracking-tighter">${item.ativo}</span>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-[9px] font-black px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 uppercase tracking-widest italic">Análise de IA</span>
+                                </div>
+                            </div>
+                            <span class="text-[11px] font-black ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'} bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">${item.score_confianca}/10</span>
+                        </div>
+                        <p class="line-clamp-custom text-xs text-gray-300 leading-relaxed italic font-medium mb-6">"${item.motivo_fato_relevante}"</p>
+                        <div class="flex justify-between items-center pt-6 border-t border-white/5">
+                            <div class="flex items-center gap-2 text-gray-500">
+                                <i data-lucide="info" class="w-3 h-3"></i>
+                                <span class="text-[9px] font-black uppercase tracking-widest">${item.fonte || 'Mercado Geral'}</span>
+                            </div>
+                            <button class="bg-blue-600 text-white text-[9px] font-black px-6 py-2 rounded-full uppercase tracking-widest">Detalhes</button>
+                        </div>
+                    </div>`).join('');
+                lucide.createIcons();
+            } else {
+                container.innerHTML = `<div class="py-12 text-center text-gray-600 italic text-xs font-black">Aguardando gatilhos mundiais...</div>`;
             }
         }
 
@@ -163,8 +195,8 @@
                 document.getElementById('history-body').innerHTML = data.map(op => `
                     <tr class="hover:bg-white/[0.02] transition-colors">
                         <td class="px-6 py-4 font-black text-white italic">${op.ativo}</td>
-                        <td class="px-6 py-4"><span class="px-2 py-0.5 rounded text-[9px] font-bold ${op.resultado === 'WIN' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}">${op.resultado}</span></td>
-                        <td class="px-6 py-4 text-right font-black ${op.resultado === 'WIN' ? 'text-green-500' : 'text-red-500'}"><span class="privacy-toggle ${isPrivate ? 'privacy-hidden' : ''}">${op.resultado === 'WIN' ? '+' : ''}${Number(op.valor_resultado).toFixed(2)}</span></td>
+                        <td class="px-6 py-4"><span class="px-2 py-0.5 rounded text-[9px] font-bold ${op.resultado === 'WIN' ? 'bg-green-400/10 text-green-400' : 'bg-red-400/10 text-red-400'}">${op.resultado}</span></td>
+                        <td class="px-6 py-4 text-right font-black ${op.resultado === 'WIN' ? 'text-green-400' : 'text-red-400'}"><span class="privacy-toggle ${isPrivate ? 'privacy-hidden' : ''}">${op.resultado === 'WIN' ? '+' : ''}${Number(op.valor_resultado).toFixed(2)}</span></td>
                     </tr>`).join('');
             }
         }
@@ -172,41 +204,13 @@
         function renderChart() {
             const container = document.getElementById('chart-terminal');
             if (!container || typeof Recharts === 'undefined' || typeof ReactDOM === 'undefined') { setTimeout(renderChart, 1000); return; }
-            const { AreaChart, Area, ResponsiveContainer, YAxis } = Recharts;
             if (!chartRoot) chartRoot = ReactDOM.createRoot(container);
-            chartRoot.render(React.createElement(ResponsiveContainer, { width: '100%', height: '100%' }, React.createElement(AreaChart, { data: chartData }, React.createElement(YAxis, { hide: true, domain: ['dataMin - 1', 'dataMax + 1'] }), React.createElement(Area, { type: 'monotone', dataKey: 'valor', stroke: '#3b82f6', fill: '#3b82f622', strokeWidth: 3 }))));
+            chartRoot.render(React.createElement(Recharts.ResponsiveContainer, { width: '100%', height: '100%' }, React.createElement(Recharts.AreaChart, { data: chartData }, React.createElement(Recharts.YAxis, { hide: true, domain: ['dataMin - 1', 'dataMax + 1'] }), React.createElement(Recharts.Area, { type: 'monotone', dataKey: 'valor', stroke: '#3b82f6', fill: '#3b82f622', strokeWidth: 3 }))));
         }
 
         async function fetchChartHistory() {
             const { data } = await sbClient.from('historico_banca').select('valor_banca, data_registro').order('data_registro', { ascending: true }).limit(20);
             if (data) { chartData = data.map(p => ({ time: new Date(p.data_registro).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), valor: Number(p.valor_banca) })); renderChart(); }
-        }
-
-        async function fetchLatestSignals() {
-            const today = new Date().toISOString().split('T')[0];
-            const { data, count } = await sbClient.from('log_oportunidades')
-                .select('*', { count: 'exact' })
-                .gte('created_at', today)
-                .order('created_at', { ascending: false });
-            
-            document.getElementById('signal-count').innerText = `${count || 0} Sinais Hoje`;
-            
-            if (data && data.length > 0) {
-                document.getElementById('signal-container').className = "grid grid-cols-1 md:grid-cols-2 gap-4 text-left py-0";
-                document.getElementById('signal-container').innerHTML = data.map(item => `
-                    <div class="bg-[#161b22] border border-[#30363d] p-6 rounded-2xl shadow-lg">
-                        <div class="flex justify-between items-start mb-4 text-white">
-                            <span class="font-black text-xl italic uppercase">${item.ativo}</span>
-                            <span class="text-[10px] font-black ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'}">${item.score_confianca}/10</span>
-                        </div>
-                        <p class="text-[11px] text-gray-400 mb-6 italic line-clamp-2">"${item.motivo_fato_relevante}"</p>
-                        <button class="w-full bg-blue-600 text-white text-[9px] font-black py-2 rounded-full uppercase">Executar</button>
-                    </div>`).join('');
-                lucide.createIcons();
-            } else {
-                document.getElementById('signal-container').className = "grid grid-cols-1 md:grid-cols-2 gap-4 text-center py-10 text-gray-600 italic text-sm";
-                document.getElementById('signal-container').innerText = "Nenhum sinal relevante detectado nas últimas horas.";
-            }
         }
 
         async function fetchUSD() { try { const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL'); const d = await res.json(); document.getElementById('usd-price').innerText = `R$ ${Number(d.USDBRL.bid).toFixed(2)}`; } catch (e) {} }
