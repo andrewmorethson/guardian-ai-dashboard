@@ -188,8 +188,8 @@
                     </div>
                     <p class="text-[11px] text-gray-400 mb-6 italic line-clamp-2">"${item.motivo_fato_relevante}"</p>
                     <div class="flex flex-col gap-4">
+                        ${item.fonte_noticia ? `<p class="text-[8px] text-gray-500 italic">Fonte: <span class="text-gray-400 font-semibold">${item.fonte_noticia}</span></p>` : ''}
                         <button class="w-full bg-blue-600 text-white text-[9px] font-black py-2 rounded-full uppercase">Executar</button>
-                        ${item.fonte_noticia ? `<span class="source-badge">${item.fonte_noticia}</span>` : ''}
                     </div>
                 </div>
             `).join('');
