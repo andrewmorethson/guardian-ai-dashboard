@@ -32,6 +32,21 @@
         }
 
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid rgba(48, 54, 61, 0.5); }
+        
+        /* ESTILO CÁPSULA DE FONTE */
+        .source-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+        }
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
@@ -172,7 +187,10 @@
                         <span class="text-[10px] font-black ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'}">${item.score_confianca}/10</span>
                     </div>
                     <p class="text-[11px] text-gray-400 mb-6 italic line-clamp-2">"${item.motivo_fato_relevante}"</p>
-                    <button class="w-full bg-blue-600 text-white text-[9px] font-black py-2 rounded-full uppercase">Executar</button>
+                    <div class="flex flex-col gap-4">
+                        <button class="w-full bg-blue-600 text-white text-[9px] font-black py-2 rounded-full uppercase">Executar</button>
+                        ${item.fonte_noticia ? `<span class="source-badge">${item.fonte_noticia}</span>` : ''}
+                    </div>
                 </div>
             `).join('');
             lucide.createIcons();
