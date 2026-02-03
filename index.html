@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guardian AI - Terminal v3.1.11</title>
+    <title>Guardian AI - Terminal v3.1.12</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -23,7 +23,7 @@
         .rounded-terminal { border-radius: var(--radius-core); }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
         
-        /* UX: EXPANSÃO INTELIGENTE */
+        /* EXPANSÃO INTELIGENTE */
         .signal-card.can-expand { cursor: pointer; }
         .expandable-content { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); max-height: 44px; overflow: hidden; position: relative; }
         .expanded .expandable-content { max-height: 1000px; }
@@ -35,12 +35,11 @@
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .expanded .line-clamp-2 { -webkit-line-clamp: unset; display: block; }
 
-        /* FILTROS */
-        .filter-btn { transition: all 0.3s ease; border: 1px solid var(--border-low); }
+        /* ESTILO DOS FILTROS */
+        .filter-btn { transition: all 0.3s ease; border: 1px solid var(--border-low); color: #8b949e; }
         .filter-btn.active { background-color: var(--accent-primary); border-color: var(--accent-primary); color: white; }
 
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: var(--border-low); border-radius: 10px; }
+        ::-webkit-scrollbar { width: 0px; } /* Esconde scrollbar dos filtros */
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen font-black italic">
@@ -51,7 +50,7 @@
                 <h1 class="text-2xl font-black italic uppercase text-white tracking-tighter">Guardian<span class="text-blue-500 font-normal">AI</span></h1>
             </div>
             <div class="flex items-center gap-4 bg-[#161b22] px-6 py-3 rounded-2xl border border-[#30363d]">
-                <div id="conn-status" class="w-2.5 h-2.5 bg-red-500 rounded-full transition-all duration-500"></div>
+                <div id="conn-status" class="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
                 <span id="usd-price" class="text-xs font-bold text-white border-l border-[#30363d] pl-4 uppercase">R$ 0.00</span>
             </div>
         </nav>
@@ -59,7 +58,7 @@
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <section class="lg:col-span-2 space-y-8">
                 <div class="bg-[#161b22] border border-[#30363d] rounded-terminal p-8 shadow-2xl relative overflow-hidden">
-                    <div class="flex justify-between items-center mb-2 text-blue-500">
+                    <div class="flex justify-between items-center mb-2 text-blue-500 font-black italic">
                         <p class="text-[10px] font-bold uppercase tracking-widest">Patrimônio Líquido</p>
                         <button onclick="togglePrivacy()" class="text-gray-500 hover:text-white transition-all"><i id="privacy-icon" data-lucide="eye" class="w-5 h-5"></i></button>
                     </div>
@@ -67,30 +66,23 @@
                     <div id="chart-terminal" class="h-44 w-full rounded-xl bg-black/10 border border-white/5"></div>
                 </div>
 
-                <div class="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar">
-                    <button onclick="filterSignals('TUDO')" class="filter-btn active px-6 py-2 rounded-full text-[10px] font-black uppercase italic whitespace-nowrap">Tudo</button>
-                    <button onclick="filterSignals('B3')" class="filter-btn px-6 py-2 rounded-full text-[10px] font-black uppercase italic whitespace-nowrap">B3 Brasil</button>
-                    <button onclick="filterSignals('CRIPTO')" class="filter-btn px-6 py-2 rounded-full text-[10px] font-black uppercase italic whitespace-nowrap">Criptoativos</button>
-                    <button onclick="filterSignals('FOREX')" class="filter-btn px-6 py-2 rounded-full text-[10px] font-black uppercase italic whitespace-nowrap">Forex</button>
+                <div class="flex items-center gap-3 overflow-x-auto pb-2">
+                    <button onclick="updateFilter('TUDO')" id="btn-TUDO" class="filter-btn active px-6 py-2 rounded-full text-[10px] font-black uppercase italic whitespace-nowrap">Tudo</button>
+                    <button onclick="updateFilter('B3')" id="btn-B3" class="filter-btn px-6 py-2 rounded-full text-[10px] font-black uppercase italic whitespace-nowrap">B3 Brasil</button>
+                    <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" class="filter-btn px-6 py-2 rounded-full text-[10px] font-black uppercase italic whitespace-nowrap">Criptoativos</button>
+                    <button onclick="updateFilter('FOREX')" id="btn-FOREX" class="filter-btn px-6 py-2 rounded-full text-[10px] font-black uppercase italic whitespace-nowrap">Forex</button>
                 </div>
 
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
-                        <h3 class="text-gray-500 font-bold uppercase text-[10px] tracking-[0.3em]">Technical Insight Engine</h3>
-                    </div>
-                    <span id="signal-count" class="text-[9px] text-gray-600 font-black uppercase">0 Sinais Hoje</span>
-                </div>
                 <div id="signal-container" class="grid grid-cols-1 gap-6"></div>
             </section>
 
             <aside class="space-y-6">
                 <div id="auto-panel" class="bg-gradient-to-br from-green-600 to-green-800 rounded-terminal p-6 text-white shadow-2xl transition-all duration-700">
                     <h4 id="mode-text" class="text-2xl font-black italic mb-4 uppercase">Automático</h4>
-                    <div class="space-y-4 pt-4 border-t border-white/10 text-white font-black">
+                    <div class="space-y-4 pt-4 border-t border-white/10 font-black">
                         <div class="flex justify-between text-[10px] font-bold uppercase"><span>Drawdown</span><span id="loss-count">0 / 2</span></div>
                         <div class="w-full bg-black/30 h-1.5 rounded-full overflow-hidden"><div id="loss-progress" class="bg-white h-full" style="width: 0%"></div></div>
-                        <button onclick="manualResetLosses()" class="w-full mt-2 bg-black/20 py-3 rounded-xl text-[9px] font-black uppercase border border-white/10 text-white font-black italic">Resetar Trava</button>
+                        <button onclick="manualResetLosses()" class="w-full mt-2 bg-black/20 py-3 rounded-xl text-[9px] font-black uppercase border border-white/10 text-white italic">Resetar Trava</button>
                     </div>
                 </div>
 
@@ -111,8 +103,14 @@
         const CONFIG = { url: "https://puwjojeeuvtfzevkvzjd.supabase.co", key: "sb_publishable_o8XZmMMgw5l63TcPRdpmrA_T99K-eDX" };
         let sbClient, isPrivate = false, currentFilter = 'TUDO';
 
+        // LÓGICA DE PRIVACIDADE PERSISTENTE
         function togglePrivacy() {
             isPrivate = !isPrivate;
+            localStorage.setItem('guardian_privacy', isPrivate);
+            applyPrivacyUI();
+        }
+
+        function applyPrivacyUI() {
             document.querySelectorAll('.privacy-toggle').forEach(el => isPrivate ? el.classList.add('privacy-hidden') : el.classList.remove('privacy-hidden'));
             document.getElementById('privacy-icon').setAttribute('data-lucide', isPrivate ? 'eye-off' : 'eye');
             lucide.createIcons();
@@ -120,17 +118,24 @@
 
         async function init() {
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
+            
+            // Recupera estado da privacidade
+            isPrivate = localStorage.getItem('guardian_privacy') === 'true';
+            applyPrivacyUI();
+
             lucide.createIcons();
             document.getElementById('conn-status').className = "w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse";
+            
             await Promise.all([fetchBanca(), fetchLatestSignals()]);
+            fetchUSD();
+            
             sbClient.channel('news').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'log_oportunidades' }, fetchLatestSignals).subscribe();
         }
 
-        function filterSignals(category) {
-            currentFilter = category;
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.innerText.includes(category) || (category === 'TUDO' && btn.innerText === 'TUDO'));
-            });
+        function updateFilter(cat) {
+            currentFilter = cat;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${cat}`).classList.add('active');
             fetchLatestSignals();
         }
 
@@ -138,38 +143,42 @@
             const { data } = await sbClient.from('perfil_usuario').select('*').single();
             if (data) {
                 document.getElementById('balance-display').innerText = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
-                document.getElementById('wallet-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
                 document.getElementById('wallet-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
+                document.getElementById('wallet-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
                 document.getElementById('wallet-reinvestir').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
                 document.getElementById('wallet-guardado').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
                 document.getElementById('loss-count').innerText = `${data.perdas_hoje} / 2`;
+                applyPrivacyUI();
             }
         }
 
         async function fetchLatestSignals() {
-            const today = new Date().toISOString().split('T')[0];
-            let query = sbClient.from('log_oportunidades').select('*', { count: 'exact' }).gte('created_at', today);
-            
-            // Lógica de Filtro restaurada
-            if (currentFilter === 'CRIPTO') query = query.ilike('ativo', '%BTC%').ilike('ativo', '%ETH%'); // Exemplo
-            
-            const { data, count } = await query.order('created_at', { ascending: false });
-            document.getElementById('signal-count').innerText = `${count || 0} Sinais Hoje`;
+            const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             const container = document.getElementById('signal-container');
             
-            if (data && data.length > 0) {
-                container.innerHTML = data.map(item => {
+            if (data) {
+                // FILTRAGEM DINÂMICA LADO CLIENTE
+                const filtered = data.filter(item => {
+                    if (currentFilter === 'TUDO') return true;
+                    const ativo = item.ativo.toUpperCase();
+                    if (currentFilter === 'CRIPTO') return ["BTC", "ETH", "SOL", "USDT"].some(c => ativo.includes(c));
+                    if (currentFilter === 'B3') return !["BTC", "ETH", "SOL", "USDT", "/"].some(c => ativo.includes(c)) && ativo.length >= 4;
+                    if (currentFilter === 'FOREX') return ativo.includes("/");
+                    return true;
+                });
+
+                container.innerHTML = filtered.map(item => {
                     const longText = item.motivo_fato_relevante.length > 100;
                     return `
                     <div ${longText ? `onclick="this.classList.toggle('expanded')"` : ""} class="signal-card ${longText ? 'can-expand' : ''} bg-[#161b22] border border-[#30363d] p-6 rounded-2xl shadow-xl hover:border-blue-500/30 transition-all font-black italic">
-                        <div class="flex justify-between items-start mb-4 text-white">
-                            <div><span class="font-black text-2xl uppercase tracking-tighter">${item.ativo}</span></div>
-                            <span class="text-[11px] font-black ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'} font-black">${item.score_confianca}/10</span>
+                        <div class="flex justify-between items-start mb-4 text-white font-black">
+                            <div><span class="font-black text-2xl uppercase tracking-tighter italic">${item.ativo}</span></div>
+                            <span class="text-[11px] font-black ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'}">${item.score_confianca}/10</span>
                         </div>
                         <div class="expandable-content mb-6">
                             <p class="text-xs text-gray-300 leading-relaxed font-black italic line-clamp-2">"${item.motivo_fato_relevante}"</p>
                         </div>
-                        <div class="flex justify-between items-center pt-6 border-t border-white/5">
+                        <div class="flex justify-between items-center pt-6 border-t border-white/5 font-black italic">
                             <span class="text-[9px] text-gray-500 uppercase italic font-black">${item.fonte || 'Geral'}</span>
                             <button onclick="event.stopPropagation(); alert('Executando: ${item.ativo}')" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic">Executar</button>
                         </div>
@@ -177,6 +186,17 @@
                 }).join('');
                 lucide.createIcons();
             }
+        }
+
+        async function fetchUSD() {
+            const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
+            const d = await res.json();
+            document.getElementById('usd-price').innerText = `R$ ${Number(d.USDBRL.bid).toFixed(2)}`;
+        }
+
+        async function manualResetLosses() {
+            const { data: profile } = await sbClient.from('perfil_usuario').select('id').single();
+            if (profile) await sbClient.from('perfil_usuario').update({ perdas_hoje: 0 }).eq('id', profile.id);
         }
 
         window.onload = init;
