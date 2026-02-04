@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI - Terminal v3.1.27</title>
+    <title>Guardian AI - Terminal v3.1.28</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -159,6 +159,7 @@
             document.getElementById(`sec-${tabId}`).classList.add('active');
             el.classList.add('active');
             window.scrollTo(0,0);
+            lucide.createIcons();
         }
 
         async function triggerGuardianEngine() {
@@ -173,7 +174,7 @@
                     body: JSON.stringify({})
                 });
                 const result = await response.json();
-                if (result.status === "ok") { alert(`IA detectou ${result.ai.ativo}. Ordem enviada.`); }
+                if (result.status === "ok") { alert(`Sucesso! IA detectou ${result.ai.ativo}.`); }
                 else { alert(`Erro: ${result.error || 'Falha na IA'}`); }
             } catch (e) { alert("Falha na conexão com a Edge Function."); }
             finally { btn.innerText = originalText; btn.disabled = false; }
@@ -266,4 +267,38 @@
             });
             document.getElementById('signal-count').innerText = `${filtered.length} Sinais Hoje`;
             container.innerHTML = filtered.length === 0 ? '<p class="text-center py-10 text-gray-600 text-[10px] font-black uppercase">Aguardando sinais...</p>' : filtered.map(item => `
-                <div onclick="this.classList.toggle('expanded')" class="signal-card bg-[#
+                <div onclick="this.classList.toggle('expanded')" class="signal-card bg-[#161b22] border border-[#30363d] p-5 rounded-2xl shadow-xl font-black italic">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-xl uppercase tracking-tighter text-white font-black">${item.ativo}</span>
+                        <span class="text-[10px] ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'} font-black">${item.score_confianca}/10</span>
+                    </div>
+                    <div class="expandable-content mb-4"><p class="text-[11px] text-gray-400 line-clamp-2 italic leading-relaxed">"${item.motivo_fato_relevante}"</p></div>
+                    <div class="flex justify-between items-center pt-4 border-t border-white/5 font-black italic">
+                        <span class="text-[8px] text-gray-600 uppercase font-black">${item.fonte || 'Guardian AI'}</span>
+                        <button onclick="event.stopPropagation(); alert('Monitorando: ${item.ativo}')" class="bg-blue-600 text-white text-[9px] px-5 py-2 rounded-full uppercase font-black">Detalhes</button>
+                    </div>
+                </div>`).join('');
+            lucide.createIcons();
+        }
+
+        async function fetchHistoryTable() {
+            const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false });
+            if (data) {
+                const total = data.length;
+                const wins = data.filter(op => op.resultado === 'WIN').length;
+                document.getElementById('win-rate').innerText = `${total > 0 ? Math.round((wins / total) * 100) : 0}%`;
+                document.getElementById('loss-rate').innerText = `${total > 0 ? 100 - Math.round((wins / total) * 100) : 0}%`;
+                updateChart(data);
+                document.getElementById('history-body').innerHTML = data.slice(0, 5).map(op => `
+                    <tr class="text-white font-black italic border-b border-[#30363d]">
+                        <td class="px-4 py-3 font-black">${op.ativo}</td>
+                        <td class="px-4 py-3 text-center font-black"><span class="px-2 py-0.5 rounded text-[8px] ${op.resultado === 'WIN' ? 'bg-green-400/10 text-green-400' : 'bg-red-400/10 text-red-400'}">${op.resultado}</span></td>
+                        <td class="px-4 py-3 text-right font-black"><span class="privacy-toggle">${Number(op.valor_resultado).toFixed(2)}</span></td>
+                    </tr>`).join('');
+                applyPrivacyUI();
+            }
+        }
+        window.onload = init;
+    </script>
+</body>
+</html>
