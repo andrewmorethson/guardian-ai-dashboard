@@ -3,27 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI - Terminal v3.1.23</title>
+    <title>Guardian AI - Terminal v3.1.25</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* DESIGN TOKENS v1.0 - DEFINIÇÃO DO FUNDO E CORES */
         :root {
             --radius-core: 24px;
             --radius-inner: 16px;
-            --bg-main: #0d1117;
-            --bg-card: #161b22;
+            --bg-main: #0d1117; /* Fundo Principal */
+            --bg-card: #161b22; /* Fundo dos Cards */
             --border-low: #30363d;
             --accent-primary: #3b82f6;
         }
 
         body { 
-            background-color: var(--bg-main); 
+            background-color: var(--bg-main) !important; 
             color: #e6edf3; 
             font-family: 'Inter', sans-serif; 
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding-bottom: 80px; /* Espaço para nav mobile */
         }
 
         .privacy-hidden { background-color: #30363d !important; color: transparent !important; border-radius: 6px; display: inline-block; min-width: 100px; height: 1.2em; pointer-events: none; }
@@ -40,33 +43,32 @@
         /* UX MOBILE: NAV INFERIOR */
         .mobile-nav { 
             position: fixed; bottom: 0; left: 0; right: 0; 
-            background: rgba(22, 27, 34, 0.95); 
-            backdrop-filter: blur(10px);
+            background: rgba(22, 27, 34, 0.98); 
+            backdrop-filter: blur(15px);
             border-top: 1px solid var(--border-low);
             z-index: 100;
             display: flex; justify-content: space-around; padding: 12px 0;
             padding-bottom: env(safe-area-inset-bottom);
         }
 
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; color: #8b949e; cursor: pointer; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; color: #8b949e; cursor: pointer; transition: 0.2s; }
         .nav-item.active { color: var(--accent-primary); }
-
-        /* ESCONDER SCROLLBARS */
-        ::-webkit-scrollbar { width: 0px; height: 0px; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         .content-section { display: none; }
         .content-section.active { display: block; animation: fadeIn 0.3s ease; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        
+        ::-webkit-scrollbar { width: 0px; height: 0px; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="p-4 md:p-8 font-black italic pb-24 md:pb-8">
+<body class="p-4 md:p-8 font-black italic">
     <div class="max-w-6xl mx-auto">
         
         <nav class="flex justify-between items-center mb-6 md:mb-10">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-xl"><i data-lucide="zap" class="w-5 h-5 text-white fill-white"></i></div>
+                <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20"><i data-lucide="zap" class="w-5 h-5 text-white fill-white"></i></div>
                 <h1 class="text-xl md:text-2xl font-black italic uppercase tracking-tighter">Guardian<span class="text-blue-500 font-normal">AI</span></h1>
             </div>
             <div class="flex items-center gap-3 bg-[#161b22] px-4 py-2 rounded-2xl border border-[#30363d]">
@@ -93,7 +95,7 @@
 
                 <div class="bg-[#161b22] border border-[#30363d] rounded-terminal p-6 shadow-xl space-y-4 text-white font-black italic">
                     <h4 class="text-[9px] font-black text-blue-500 uppercase tracking-widest border-b border-[#30363d] pb-3">Visão Macro</h4>
-                    <div class="grid grid-cols-2 md:grid-cols-1 gap-3">
+                    <div class="grid grid-cols-2 gap-3">
                         <div class="card-inner p-3 flex flex-col"><span class="text-[7px] text-gray-500 uppercase">Bruto</span><span id="wallet-bruto" class="text-xs privacy-toggle">R$ 0.00</span></div>
                         <div class="card-inner p-3 flex flex-col"><span class="text-[7px] text-green-400 uppercase">Líquido</span><span id="wallet-liquido" class="text-xs privacy-toggle">R$ 0.00</span></div>
                         <div class="card-inner p-3 flex flex-col border-l-2 border-yellow-500/30"><span class="text-[7px] text-yellow-500 uppercase">Reinvestir</span><span id="wallet-reinvestir" class="text-xs privacy-toggle">R$ 0.00</span></div>
@@ -109,12 +111,7 @@
                     <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn px-5 py-2 rounded-full text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="coins" class="w-3 h-3"></i> Cripto</button>
                     <button onclick="updateFilter('FOREX')" id="btn-FOREX" data-cat="FOREX" class="filter-btn px-5 py-2 rounded-full text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="globe" class="w-3 h-3"></i> Forex</button>
                 </div>
-                
-                <div class="flex items-center justify-between">
-                    <span id="signal-count" class="text-[10px] text-white font-black uppercase italic tracking-widest">0 Sinais Hoje</span>
-                    <span id="usd-price-mobile" class="text-[10px] text-gray-500 font-black italic">DÓLAR R$ 0.00</span>
-                </div>
-
+                <div id="signal-count" class="text-[10px] text-white font-black uppercase italic tracking-widest px-1">0 Sinais Hoje</div>
                 <div id="signal-container" class="grid grid-cols-1 gap-4"></div>
             </section>
 
@@ -123,18 +120,14 @@
                     <h4 id="mode-text" class="text-xl font-black italic mb-4 uppercase">Automático</h4>
                     <div class="space-y-4 pt-4 border-t border-white/10">
                         <div class="flex justify-between text-[10px] font-bold"><span>DRAWDOWN DIÁRIO</span><span id="loss-count">0 / 2</span></div>
-                        <div class="w-full bg-black/30 h-1.5 rounded-full"><div id="loss-progress" class="bg-white h-full transition-all" style="width: 0%"></div></div>
-                        <button onclick="manualResetLosses()" class="w-full mt-2 bg-black/20 py-3 rounded-xl text-[9px] font-black uppercase border border-white/10">Resetar Trava</button>
+                        <div class="w-full bg-black/30 h-1.5 rounded-full overflow-hidden"><div id="loss-progress" class="bg-white h-full" style="width: 0%"></div></div>
+                        <button onclick="manualResetLosses()" class="w-full mt-2 bg-black/20 py-3 rounded-xl text-[9px] font-black uppercase border border-white/10 text-white italic">Resetar Trava</button>
                     </div>
                 </div>
-
-                <div class="mt-8">
-                    <h3 class="text-gray-500 font-bold uppercase text-[9px] tracking-widest mb-4 flex items-center gap-2"><i data-lucide="history" class="w-3 h-3 text-blue-500"></i> Auditoria Recente</h3>
-                    <div class="bg-[#161b22] border border-[#30363d] rounded-terminal overflow-hidden shadow-xl">
-                        <table class="w-full text-left text-[10px]">
-                            <tbody id="history-body" class="divide-y divide-[#30363d]"></tbody>
-                        </table>
-                    </div>
+                <div class="bg-[#161b22] border border-[#30363d] rounded-terminal overflow-hidden shadow-xl font-black italic">
+                    <table class="w-full text-left text-[10px]">
+                        <tbody id="history-body" class="divide-y divide-[#30363d]"></tbody>
+                    </table>
                 </div>
             </section>
         </main>
@@ -155,7 +148,6 @@
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             document.getElementById(`sec-${tabId}`).classList.add('active');
             el.classList.add('active');
-            window.scrollTo(0,0);
         }
 
         function togglePrivacy() {
@@ -191,10 +183,7 @@
                         data: dataPoints,
                         borderColor: '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.05)',
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 2,
-                        pointRadius: 0
+                        fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0
                     }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
@@ -211,7 +200,6 @@
             sbClient.channel('realtime').on('postgres_changes', { event: '*', schema: 'public' }, () => {
                 fetchBanca(); fetchLatestSignals(); fetchHistoryTable();
             }).subscribe();
-            fetchUSD();
         }
 
         function updateFilter(cat) {
@@ -248,23 +236,19 @@
                 return true;
             });
             document.getElementById('signal-count').innerText = `${filtered.length} Sinais Hoje`;
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="bg-[#161b22] border border-[#30363d] rounded-2xl p-10 text-center text-[10px] text-gray-500 uppercase font-black italic">Aguardando sinais...</div>`;
-            } else {
-                container.innerHTML = filtered.map(item => `
-                    <div onclick="this.classList.toggle('expanded')" class="signal-card bg-[#161b22] border border-[#30363d] p-5 rounded-2xl shadow-xl font-black italic">
-                        <div class="flex justify-between items-start mb-3">
-                            <span class="text-xl uppercase tracking-tighter text-white font-black italic">${item.ativo}</span>
-                            <span class="text-[10px] ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'} font-black">${item.score_confianca}/10</span>
-                        </div>
-                        <div class="expandable-content mb-4"><p class="text-[11px] text-gray-400 line-clamp-2 italic leading-relaxed">"${item.motivo_fato_relevante}"</p></div>
-                        <div class="flex justify-between items-center pt-4 border-t border-white/5 italic">
-                            <span class="text-[8px] text-gray-600 uppercase font-black">${item.fonte || 'Guardian AI'}</span>
-                            <button onclick="event.stopPropagation(); alert('Executando: ${item.ativo}')" class="bg-blue-600 text-white text-[9px] px-5 py-2 rounded-full uppercase font-black">Executar</button>
-                        </div>
-                    </div>`).join('');
-                lucide.createIcons();
-            }
+            container.innerHTML = filtered.length === 0 ? '<p class="text-center py-10 text-gray-600 text-[10px] uppercase">Aguardando sinais...</p>' : filtered.map(item => `
+                <div onclick="this.classList.toggle('expanded')" class="signal-card bg-[#161b22] border border-[#30363d] p-5 rounded-2xl shadow-xl font-black italic">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-xl uppercase tracking-tighter text-white">${item.ativo}</span>
+                        <span class="text-[10px] ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'} font-black">${item.score_confianca}/10</span>
+                    </div>
+                    <div class="expandable-content mb-4"><p class="text-[11px] text-gray-400 line-clamp-2">"${item.motivo_fato_relevante}"</p></div>
+                    <div class="flex justify-between items-center pt-4 border-t border-white/5 font-black italic">
+                        <span class="text-[8px] text-gray-600 uppercase">${item.fonte || 'Guardian AI'}</span>
+                        <button onclick="event.stopPropagation(); alert('Executando: ${item.ativo}')" class="bg-blue-600 text-white text-[9px] px-5 py-2 rounded-full uppercase">Executar</button>
+                    </div>
+                </div>`).join('');
+            lucide.createIcons();
         }
 
         async function fetchHistoryTable() {
@@ -283,16 +267,6 @@
                     </tr>`).join('');
                 applyPrivacyUI();
             }
-        }
-
-        async function fetchUSD() {
-            try {
-                const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
-                const d = await res.json();
-                const price = `R$ ${Number(d.USDBRL.bid).toFixed(2)}`;
-                document.getElementById('usd-price').innerText = price;
-                document.getElementById('usd-price-mobile').innerText = `DÓLAR ${price}`;
-            } catch (e) {}
         }
 
         async function manualResetLosses() {
