@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI - Terminal v3.1.33</title>
+    <title>Guardian AI - Terminal v3.1.34</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -20,8 +20,8 @@
             font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 110px; overflow-x: hidden;
         }
 
-        header { position: sticky; top: 0; z-index: 50; background-color: var(--bg-main); padding: 16px; }
-        main { position: relative; z-index: 10; padding: 0 16px; }
+        header { position: sticky; top: 0; z-index: 50; background-color: var(--bg-main); padding: 16px; border-bottom: 1px solid var(--border-low); }
+        main { position: relative; z-index: 10; padding: 0 16px; margin-top: 10px; }
 
         .privacy-hidden { background-color: #30363d !important; color: transparent !important; border-radius: 6px; display: inline-block; min-width: 80px; height: 1.2em; pointer-events: none; }
         .rounded-terminal { border-radius: var(--radius-core); }
@@ -29,7 +29,7 @@
         
         /* FILTROS COLORIDOS RESTAURADOS */
         .filter-btn { transition: all 0.3s ease; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 8px; }
-        .filter-btn.active { color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .filter-btn.active { color: white; border-width: 1.5px; }
         .filter-btn[data-cat="TUDO"].active { background: #3b82f6; border-color: #3b82f6; }
         .filter-btn[data-cat="B3"].active { background: #22c55e; border-color: #22c55e; }
         .filter-btn[data-cat="CRIPTO"].active { background: #f59e0b; border-color: #f59e0b; }
@@ -54,16 +54,16 @@
             <h1 class="text-xl font-black italic uppercase tracking-tighter">Guardian<span class="text-blue-500 font-normal">AI</span></h1>
         </div>
         <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-2xl border border-[#30363d]">
-            <div id="conn-status" class="w-2 h-2 rounded-full bg-red-500"></div>
-            <span id="market-status-text" class="text-[8px] font-black text-gray-400 uppercase">Fechado</span>
+            <div id="conn-status" class="w-2 h-2 rounded-full"></div>
+            <span id="market-status-text" class="text-[8px] font-black text-gray-400 uppercase">Status</span>
         </div>
     </header>
 
     <main>
-        <section id="sec-dash" class="content-section active space-y-4 pt-2">
+        <section id="sec-dash" class="content-section active space-y-4">
             <div class="bg-[#161b22] border border-[#30363d] rounded-terminal p-5 shadow-2xl relative">
-                <div class="flex justify-between items-center mb-1 text-blue-500">
-                    <p class="text-[9px] uppercase tracking-widest font-black">Patrimônio Líquido</p>
+                <div class="flex justify-between items-center mb-1 text-blue-500 font-black">
+                    <p class="text-[9px] uppercase tracking-widest">Patrimônio Líquido</p>
                     <button onclick="togglePrivacy()"><i id="privacy-icon" data-lucide="eye" class="w-4 h-4"></i></button>
                 </div>
                 <h2 id="balance-display" class="text-4xl font-black text-white tracking-tighter italic privacy-toggle">R$ 0.00</h2>
@@ -83,17 +83,17 @@
             </div>
         </section>
 
-        <section id="sec-signals" class="content-section space-y-4 pt-2">
+        <section id="sec-signals" class="content-section space-y-4">
             <div class="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-                <button onclick="updateFilter('TUDO')" id="btn-TUDO" data-cat="TUDO" class="filter-btn active px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Tudo</button>
-                <button onclick="updateFilter('B3')" id="btn-B3" data-cat="B3" class="filter-btn px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="trending-up" class="w-3.5 h-3.5"></i> B3</button>
-                <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="coins" class="w-3.5 h-3.5"></i> Cripto</button>
-                <button onclick="updateFilter('FOREX')" id="btn-FOREX" data-cat="FOREX" class="filter-btn px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="globe" class="w-3.5 h-3.5"></i> Forex</button>
+                <button onclick="updateFilter('TUDO')" id="btn-TUDO" data-cat="TUDO" class="filter-btn active px-5 py-2 rounded-full text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="layout-grid" class="w-3 h-3"></i> Tudo</button>
+                <button onclick="updateFilter('B3')" id="btn-B3" data-cat="B3" class="filter-btn px-5 py-2 rounded-full text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="trending-up" class="w-3 h-3"></i> B3</button>
+                <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn px-5 py-2 rounded-full text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="coins" class="w-3 h-3"></i> Cripto</button>
+                <button onclick="updateFilter('FOREX')" id="btn-FOREX" data-cat="FOREX" class="filter-btn px-5 py-2 rounded-full text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="globe" class="w-3 h-3"></i> Forex</button>
             </div>
             <div id="signal-container" class="grid grid-cols-1 gap-4"></div>
         </section>
 
-        <section id="sec-status" class="content-section space-y-4 pt-2">
+        <section id="sec-status" class="content-section space-y-4">
             <div id="auto-panel" class="bg-gradient-to-br from-green-600 to-green-800 rounded-terminal p-6 text-white shadow-2xl">
                 <h4 id="mode-text" class="text-xl font-black italic mb-4 uppercase">Automático</h4>
                 <div class="space-y-4 pt-4 border-t border-white/10 font-black italic">
@@ -102,7 +102,7 @@
                     <button onclick="manualResetLosses()" class="w-full mt-2 bg-black/20 py-3 rounded-xl text-[9px] font-black uppercase border border-white/10 text-white italic">Resetar Trava</button>
                 </div>
             </div>
-            <button onclick="triggerGuardianEngine()" class="w-full bg-blue-600 py-4 rounded-2xl text-xs font-black uppercase italic text-white active:scale-95 transition-all">Executar Análise Real</button>
+            <button onclick="triggerGuardianEngine()" class="w-full bg-blue-600 py-4 rounded-2xl text-xs font-black uppercase italic text-white active:scale-95 shadow-lg shadow-blue-500/20">Executar Análise Real</button>
             <div class="bg-[#161b22] border border-[#30363d] rounded-terminal overflow-hidden shadow-xl">
                 <table class="w-full text-left text-[10px] font-black italic">
                     <tbody id="history-body" class="divide-y divide-[#30363d]"></tbody>
@@ -132,6 +132,7 @@
 
         async function triggerGuardianEngine() {
             const btn = event.target;
+            const originalText = btn.innerText;
             btn.innerText = "PROCESSANDO..."; btn.disabled = true;
             try {
                 const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, {
@@ -139,11 +140,17 @@
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${CONFIG.key}` },
                     body: JSON.stringify({})
                 });
+                if (!response.ok) {
+                    const errorMsg = await response.text();
+                    throw new Error(`Servidor: ${response.status}`);
+                }
                 const result = await response.json();
-                if (result.status === "ok") alert(`IA detectou ${result.ai.ativo}.`);
-                else alert(`Erro: ${result.error}`);
-            } catch (e) { alert("Conexão falhou."); }
-            finally { btn.innerText = "Executar Análise Real"; btn.disabled = false; }
+                alert(`IA detectou ${result.ai.ativo}. Ordem enviada.`);
+            } catch (e) {
+                alert(`Falha: ${e.message}. Verifique a URL e Auth.`);
+            } finally {
+                btn.innerText = originalText; btn.disabled = false;
+            }
         }
 
         function togglePrivacy() {
@@ -227,7 +234,7 @@
                 if (currentFilter === 'FOREX') return ativo.includes("/");
                 return true;
             });
-            container.innerHTML = filtered.length === 0 ? '<p class="text-center py-10 text-gray-600 text-[10px] font-black uppercase italic">Aguardando sinais...</p>' : filtered.map(item => `
+            container.innerHTML = filtered.length === 0 ? '<p class="text-center py-10 text-gray-600 text-[10px] font-black uppercase">Aguardando sinais...</p>' : filtered.map(item => `
                 <div onclick="this.classList.toggle('expanded')" class="signal-card bg-[#161b22] border border-[#30363d] p-5 rounded-2xl shadow-xl font-black italic">
                     <div class="flex justify-between items-start mb-3">
                         <span class="text-xl uppercase tracking-tighter text-white font-black">${item.ativo}</span>
