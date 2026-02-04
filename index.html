@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI - Terminal v3.1.25</title>
+    <title>Guardian AI - Terminal v3.1.27</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* DESIGN TOKENS v1.0 - DEFINIÇÃO DO FUNDO E CORES */
+        /* DESIGN TOKENS v1.0 [PRESERVADOS] */
         :root {
             --radius-core: 24px;
             --radius-inner: 16px;
-            --bg-main: #0d1117; /* Fundo Principal */
-            --bg-card: #161b22; /* Fundo dos Cards */
+            --bg-main: #0d1117;
+            --bg-card: #161b22;
             --border-low: #30363d;
             --accent-primary: #3b82f6;
         }
@@ -26,19 +26,19 @@
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
             margin: 0;
-            padding-bottom: 80px; /* Espaço para nav mobile */
+            padding-bottom: 90px;
         }
 
         .privacy-hidden { background-color: #30363d !important; color: transparent !important; border-radius: 6px; display: inline-block; min-width: 100px; height: 1.2em; pointer-events: none; }
         .rounded-terminal { border-radius: var(--radius-core); }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
         
-        /* FILTROS COLORIDOS */
+        /* FILTROS COLORIDOS DINÂMICOS */
         .filter-btn { transition: all 0.3s ease; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 8px; }
-        .filter-btn[data-cat="TUDO"].active { background: #3b82f6; border-color: #3b82f6; color: white; }
-        .filter-btn[data-cat="B3"].active { background: #22c55e; border-color: #22c55e; color: white; }
-        .filter-btn[data-cat="CRIPTO"].active { background: #f59e0b; border-color: #f59e0b; color: white; }
-        .filter-btn[data-cat="FOREX"].active { background: #a855f7; border-color: #a855f7; color: white; }
+        .filter-btn[data-cat="TUDO"].active { background: #3b82f6; border-color: #3b82f6; color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); }
+        .filter-btn[data-cat="B3"].active { background: #22c55e; border-color: #22c55e; color: white; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2); }
+        .filter-btn[data-cat="CRIPTO"].active { background: #f59e0b; border-color: #f59e0b; color: white; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); }
+        .filter-btn[data-cat="FOREX"].active { background: #a855f7; border-color: #a855f7; color: white; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2); }
 
         /* UX MOBILE: NAV INFERIOR */
         .mobile-nav { 
@@ -61,6 +61,9 @@
         
         ::-webkit-scrollbar { width: 0px; height: 0px; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .expandable-content { transition: all 0.5s ease; max-height: 44px; overflow: hidden; position: relative; }
+        .expanded .expandable-content { max-height: 1000px; }
     </style>
 </head>
 <body class="p-4 md:p-8 font-black italic">
@@ -80,8 +83,8 @@
         <main>
             <section id="sec-dash" class="content-section active space-y-6">
                 <div class="bg-[#161b22] border border-[#30363d] rounded-terminal p-6 shadow-2xl relative overflow-hidden">
-                    <div class="flex justify-between items-center mb-2 text-blue-500 font-black">
-                        <p class="text-[9px] uppercase tracking-widest">Patrimônio Líquido</p>
+                    <div class="flex justify-between items-center mb-2 text-blue-500">
+                        <p class="text-[9px] uppercase tracking-widest font-black">Patrimônio Líquido</p>
                         <button onclick="togglePrivacy()"><i id="privacy-icon" data-lucide="eye" class="w-5 h-5"></i></button>
                     </div>
                     <h2 id="balance-display" class="text-4xl md:text-6xl font-black text-white tracking-tighter italic mb-4 privacy-toggle">R$ 0.00</h2>
@@ -89,8 +92,8 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="card-inner p-4 border-l-4 border-green-500"><p class="text-[8px] text-gray-500 uppercase italic">WIN RATE</p><h5 id="win-rate" class="text-xl font-black text-green-400">0%</h5></div>
-                    <div class="card-inner p-4 border-l-4 border-red-500"><p class="text-[8px] text-gray-500 uppercase italic">DRAWDOWN</p><h5 id="loss-rate" class="text-xl font-black text-red-400">0%</h5></div>
+                    <div class="card-inner p-4 border-l-4 border-green-500"><p class="text-[8px] text-gray-500 uppercase italic">Assertividade</p><h5 id="win-rate" class="text-xl font-black text-green-400">0%</h5></div>
+                    <div class="card-inner p-4 border-l-4 border-red-500"><p class="text-[8px] text-gray-500 uppercase italic">Drawdown</p><h5 id="loss-rate" class="text-xl font-black text-red-400">0%</h5></div>
                 </div>
 
                 <div class="bg-[#161b22] border border-[#30363d] rounded-terminal p-6 shadow-xl space-y-4 text-white font-black italic">
@@ -121,9 +124,16 @@
                     <div class="space-y-4 pt-4 border-t border-white/10">
                         <div class="flex justify-between text-[10px] font-bold"><span>DRAWDOWN DIÁRIO</span><span id="loss-count">0 / 2</span></div>
                         <div class="w-full bg-black/30 h-1.5 rounded-full overflow-hidden"><div id="loss-progress" class="bg-white h-full" style="width: 0%"></div></div>
-                        <button onclick="manualResetLosses()" class="w-full mt-2 bg-black/20 py-3 rounded-xl text-[9px] font-black uppercase border border-white/10 text-white italic">Resetar Trava</button>
                     </div>
                 </div>
+
+                <div class="p-4 bg-blue-600/10 border border-blue-500/20 rounded-2xl">
+                    <p class="text-[8px] text-blue-400 uppercase mb-3 text-center font-black">Área de Validação Técnica</p>
+                    <button onclick="triggerGuardianEngine()" class="w-full bg-blue-600 py-4 rounded-xl text-xs font-black uppercase italic text-white shadow-lg active:scale-95 transition-all">
+                        Disparar Análise de Notícias
+                    </button>
+                </div>
+
                 <div class="bg-[#161b22] border border-[#30363d] rounded-terminal overflow-hidden shadow-xl font-black italic">
                     <table class="w-full text-left text-[10px]">
                         <tbody id="history-body" class="divide-y divide-[#30363d]"></tbody>
@@ -148,6 +158,25 @@
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             document.getElementById(`sec-${tabId}`).classList.add('active');
             el.classList.add('active');
+            window.scrollTo(0,0);
+        }
+
+        async function triggerGuardianEngine() {
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "PROCESSANDO...";
+            btn.disabled = true;
+            try {
+                const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${CONFIG.key}` },
+                    body: JSON.stringify({})
+                });
+                const result = await response.json();
+                if (result.status === "ok") { alert(`IA detectou ${result.ai.ativo}. Ordem enviada.`); }
+                else { alert(`Erro: ${result.error || 'Falha na IA'}`); }
+            } catch (e) { alert("Falha na conexão com a Edge Function."); }
+            finally { btn.innerText = originalText; btn.disabled = false; }
         }
 
         function togglePrivacy() {
@@ -197,7 +226,7 @@
             checkMarketStatus();
             lucide.createIcons();
             await Promise.all([fetchBanca(), fetchLatestSignals(), fetchHistoryTable()]);
-            sbClient.channel('realtime').on('postgres_changes', { event: '*', schema: 'public' }, () => {
+            sbClient.channel('db-sync').on('postgres_changes', { event: '*', schema: 'public' }, () => {
                 fetchBanca(); fetchLatestSignals(); fetchHistoryTable();
             }).subscribe();
         }
@@ -236,45 +265,5 @@
                 return true;
             });
             document.getElementById('signal-count').innerText = `${filtered.length} Sinais Hoje`;
-            container.innerHTML = filtered.length === 0 ? '<p class="text-center py-10 text-gray-600 text-[10px] uppercase">Aguardando sinais...</p>' : filtered.map(item => `
-                <div onclick="this.classList.toggle('expanded')" class="signal-card bg-[#161b22] border border-[#30363d] p-5 rounded-2xl shadow-xl font-black italic">
-                    <div class="flex justify-between items-start mb-3">
-                        <span class="text-xl uppercase tracking-tighter text-white">${item.ativo}</span>
-                        <span class="text-[10px] ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'} font-black">${item.score_confianca}/10</span>
-                    </div>
-                    <div class="expandable-content mb-4"><p class="text-[11px] text-gray-400 line-clamp-2">"${item.motivo_fato_relevante}"</p></div>
-                    <div class="flex justify-between items-center pt-4 border-t border-white/5 font-black italic">
-                        <span class="text-[8px] text-gray-600 uppercase">${item.fonte || 'Guardian AI'}</span>
-                        <button onclick="event.stopPropagation(); alert('Executando: ${item.ativo}')" class="bg-blue-600 text-white text-[9px] px-5 py-2 rounded-full uppercase">Executar</button>
-                    </div>
-                </div>`).join('');
-            lucide.createIcons();
-        }
-
-        async function fetchHistoryTable() {
-            const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false });
-            if (data) {
-                const total = data.length;
-                const wins = data.filter(op => op.resultado === 'WIN').length;
-                document.getElementById('win-rate').innerText = `${total > 0 ? Math.round((wins / total) * 100) : 0}%`;
-                document.getElementById('loss-rate').innerText = `${total > 0 ? 100 - Math.round((wins / total) * 100) : 0}%`;
-                updateChart(data);
-                document.getElementById('history-body').innerHTML = data.slice(0, 5).map(op => `
-                    <tr class="text-white font-black italic border-b border-[#30363d]">
-                        <td class="px-4 py-3">${op.ativo}</td>
-                        <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${op.resultado === 'WIN' ? 'bg-green-400/10 text-green-400' : 'bg-red-400/10 text-red-400'}">${op.resultado}</span></td>
-                        <td class="px-4 py-3 text-right"><span class="privacy-toggle">${Number(op.valor_resultado).toFixed(2)}</span></td>
-                    </tr>`).join('');
-                applyPrivacyUI();
-            }
-        }
-
-        async function manualResetLosses() {
-            const { data: profile } = await sbClient.from('perfil_usuario').select('id').single();
-            if (profile) await sbClient.from('perfil_usuario').update({ perdas_hoje: 0 }).eq('id', profile.id);
-        }
-
-        window.onload = init;
-    </script>
-</body>
-</html>
+            container.innerHTML = filtered.length === 0 ? '<p class="text-center py-10 text-gray-600 text-[10px] font-black uppercase">Aguardando sinais...</p>' : filtered.map(item => `
+                <div onclick="this.classList.toggle('expanded')" class="signal-card bg-[#
