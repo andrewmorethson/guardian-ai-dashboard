@@ -3,69 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI - Terminal v3.1.32</title>
+    <title>Guardian AI - Terminal v3.1.33</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { 
-            --radius-core: 24px; 
-            --radius-inner: 16px; 
-            --bg-main: #0d1117; 
-            --bg-card: #161b22; 
-            --border-low: #30363d; 
-            --accent-primary: #3b82f6; 
+            --radius-core: 24px; --radius-inner: 16px; 
+            --bg-main: #0d1117; --bg-card: #161b22; 
+            --border-low: #30363d; --accent-primary: #3b82f6; 
         }
 
         body { 
-            background-color: var(--bg-main) !important; 
-            color: #e6edf3; 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; 
-            padding-bottom: 110px;
-            overflow-x: hidden;
+            background-color: var(--bg-main) !important; color: #e6edf3; 
+            font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 110px; overflow-x: hidden;
         }
 
-        /* CORREÇÃO DE CAMADAS: HEADER SEMPRE NO TOPO */
-        header { 
-            position: sticky; 
-            top: 0; 
-            z-index: 50; 
-            background-color: var(--bg-main); 
-            padding: 16px;
-            border-bottom: 1px solid transparent;
-        }
-
-        main { 
-            position: relative; 
-            z-index: 10; 
-            padding: 0 16px;
-        }
+        header { position: sticky; top: 0; z-index: 50; background-color: var(--bg-main); padding: 16px; }
+        main { position: relative; z-index: 10; padding: 0 16px; }
 
         .privacy-hidden { background-color: #30363d !important; color: transparent !important; border-radius: 6px; display: inline-block; min-width: 80px; height: 1.2em; pointer-events: none; }
         .rounded-terminal { border-radius: var(--radius-core); }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
         
-        .mobile-nav { 
-            position: fixed; bottom: 0; left: 0; right: 0; 
-            background: #161b22; 
-            border-top: 1px solid var(--border-low); 
-            z-index: 100; 
-            display: flex; justify-content: space-around; padding: 15px 0; 
-            padding-bottom: env(safe-area-inset-bottom); 
-        }
+        /* FILTROS COLORIDOS RESTAURADOS */
+        .filter-btn { transition: all 0.3s ease; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 8px; }
+        .filter-btn.active { color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .filter-btn[data-cat="TUDO"].active { background: #3b82f6; border-color: #3b82f6; }
+        .filter-btn[data-cat="B3"].active { background: #22c55e; border-color: #22c55e; }
+        .filter-btn[data-cat="CRIPTO"].active { background: #f59e0b; border-color: #f59e0b; }
+        .filter-btn[data-cat="FOREX"].active { background: #a855f7; border-color: #a855f7; }
 
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 10px; color: #8b949e; }
+        .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid var(--border-low); z-index: 100; display: flex; justify-content: space-around; padding: 15px 0; padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 10px; color: #8b949e; cursor: pointer; }
         .nav-item.active { color: var(--accent-primary); }
 
         .content-section { display: none; }
         .content-section.active { display: block; animation: fadeIn 0.2s ease-in; }
-
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        ::-webkit-scrollbar { width: 0px; height: 0px; }
         .expandable-content { transition: all 0.5s ease; max-height: 44px; overflow: hidden; }
         .expanded .expandable-content { max-height: 1000px; }
+        ::-webkit-scrollbar { width: 0px; height: 0px; }
     </style>
 </head>
 <body class="font-black italic">
@@ -106,10 +85,10 @@
 
         <section id="sec-signals" class="content-section space-y-4 pt-2">
             <div class="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-                <button onclick="updateFilter('TUDO')" id="btn-TUDO" data-cat="TUDO" class="filter-btn active px-5 py-2 rounded-full text-[9px] font-black uppercase italic whitespace-nowrap">Tudo</button>
-                <button onclick="updateFilter('B3')" id="btn-B3" data-cat="B3" class="filter-btn px-5 py-2 rounded-full text-[9px] font-black uppercase italic whitespace-nowrap">B3</button>
-                <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn px-5 py-2 rounded-full text-[9px] font-black uppercase italic whitespace-nowrap">Cripto</button>
-                <button onclick="updateFilter('FOREX')" id="btn-FOREX" data-cat="FOREX" class="filter-btn px-5 py-2 rounded-full text-[9px] font-black uppercase italic whitespace-nowrap">Forex</button>
+                <button onclick="updateFilter('TUDO')" id="btn-TUDO" data-cat="TUDO" class="filter-btn active px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Tudo</button>
+                <button onclick="updateFilter('B3')" id="btn-B3" data-cat="B3" class="filter-btn px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="trending-up" class="w-3.5 h-3.5"></i> B3</button>
+                <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="coins" class="w-3.5 h-3.5"></i> Cripto</button>
+                <button onclick="updateFilter('FOREX')" id="btn-FOREX" data-cat="FOREX" class="filter-btn px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase italic whitespace-nowrap"><i data-lucide="globe" class="w-3.5 h-3.5"></i> Forex</button>
             </div>
             <div id="signal-container" class="grid grid-cols-1 gap-4"></div>
         </section>
@@ -117,14 +96,13 @@
         <section id="sec-status" class="content-section space-y-4 pt-2">
             <div id="auto-panel" class="bg-gradient-to-br from-green-600 to-green-800 rounded-terminal p-6 text-white shadow-2xl">
                 <h4 id="mode-text" class="text-xl font-black italic mb-4 uppercase">Automático</h4>
-                <div class="space-y-4 pt-4 border-t border-white/10 font-black">
+                <div class="space-y-4 pt-4 border-t border-white/10 font-black italic">
                     <div class="flex justify-between text-[10px] font-bold"><span>Risco Diário</span><span id="loss-count">0 / 2</span></div>
                     <div class="w-full bg-black/30 h-1.5 rounded-full overflow-hidden"><div id="loss-progress" class="bg-white h-full" style="width: 0%"></div></div>
+                    <button onclick="manualResetLosses()" class="w-full mt-2 bg-black/20 py-3 rounded-xl text-[9px] font-black uppercase border border-white/10 text-white italic">Resetar Trava</button>
                 </div>
             </div>
-            <button onclick="triggerGuardianEngine()" class="w-full bg-blue-600 py-4 rounded-2xl text-xs font-black uppercase italic text-white active:scale-95 transition-all">
-                Executar Análise Real
-            </button>
+            <button onclick="triggerGuardianEngine()" class="w-full bg-blue-600 py-4 rounded-2xl text-xs font-black uppercase italic text-white active:scale-95 transition-all">Executar Análise Real</button>
             <div class="bg-[#161b22] border border-[#30363d] rounded-terminal overflow-hidden shadow-xl">
                 <table class="w-full text-left text-[10px] font-black italic">
                     <tbody id="history-body" class="divide-y divide-[#30363d]"></tbody>
@@ -154,8 +132,7 @@
 
         async function triggerGuardianEngine() {
             const btn = event.target;
-            btn.innerText = "PROCESSANDO...";
-            btn.disabled = true;
+            btn.innerText = "PROCESSANDO..."; btn.disabled = true;
             try {
                 const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, {
                     method: 'POST',
@@ -199,9 +176,7 @@
                 data: {
                     labels: dataPoints.map((_, i) => i),
                     datasets: [{
-                        data: dataPoints,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                        data: dataPoints, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.05)',
                         fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0
                     }]
                 },
@@ -212,9 +187,7 @@
         async function init() {
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
             isPrivate = localStorage.getItem('guardian_privacy') === 'true';
-            applyPrivacyUI();
-            checkMarketStatus();
-            lucide.createIcons();
+            applyPrivacyUI(); checkMarketStatus(); lucide.createIcons();
             await Promise.all([fetchBanca(), fetchLatestSignals(), fetchHistoryTable()]);
             sbClient.channel('realtime').on('postgres_changes', { event: '*', schema: 'public' }, () => {
                 fetchBanca(); fetchLatestSignals(); fetchHistoryTable();
@@ -223,6 +196,8 @@
 
         function updateFilter(cat) {
             currentFilter = cat;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${cat}`).classList.add('active');
             fetchLatestSignals();
         }
 
@@ -252,16 +227,16 @@
                 if (currentFilter === 'FOREX') return ativo.includes("/");
                 return true;
             });
-            container.innerHTML = filtered.length === 0 ? '<p class="text-center py-10 text-gray-600 text-[10px] uppercase">Aguardando sinais...</p>' : filtered.map(item => `
+            container.innerHTML = filtered.length === 0 ? '<p class="text-center py-10 text-gray-600 text-[10px] font-black uppercase italic">Aguardando sinais...</p>' : filtered.map(item => `
                 <div onclick="this.classList.toggle('expanded')" class="signal-card bg-[#161b22] border border-[#30363d] p-5 rounded-2xl shadow-xl font-black italic">
                     <div class="flex justify-between items-start mb-3">
                         <span class="text-xl uppercase tracking-tighter text-white font-black">${item.ativo}</span>
                         <span class="text-[10px] ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'} font-black">${item.score_confianca}/10</span>
                     </div>
-                    <div class="expandable-content mb-4"><p class="text-[11px] text-gray-400 italic line-clamp-2">"${item.motivo_fato_relevante}"</p></div>
+                    <div class="expandable-content mb-4 font-black italic"><p class="text-[11px] text-gray-400 line-clamp-2">"${item.motivo_fato_relevante}"</p></div>
                     <div class="flex justify-between items-center pt-4 border-t border-white/5 font-black italic">
-                        <span class="text-[8px] text-gray-600 uppercase font-black">${item.fonte || 'Guardian AI'}</span>
-                        <button class="bg-blue-600 text-white text-[9px] px-5 py-2 rounded-full uppercase font-black">Detalhes</button>
+                        <span class="text-[8px] text-gray-600 uppercase font-black italic">${item.fonte || 'Guardian AI'}</span>
+                        <button class="bg-blue-600 text-white text-[9px] px-5 py-2 rounded-full uppercase font-black italic">Detalhes</button>
                     </div>
                 </div>`).join('');
             lucide.createIcons();
@@ -270,8 +245,7 @@
         async function fetchHistoryTable() {
             const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false });
             if (data) {
-                const total = data.length;
-                const wins = data.filter(op => op.resultado === 'WIN').length;
+                const total = data.length; const wins = data.filter(op => op.resultado === 'WIN').length;
                 document.getElementById('win-rate').innerText = `${total > 0 ? Math.round((wins / total) * 100) : 0}%`;
                 document.getElementById('loss-rate').innerText = `${total > 0 ? 100 - Math.round((wins / total) * 100) : 0}%`;
                 updateChart(data);
@@ -279,10 +253,15 @@
                     <tr class="text-white font-black italic border-b border-[#30363d]">
                         <td class="px-4 py-4 font-black">${op.ativo}</td>
                         <td class="px-4 py-4 text-center font-black"><span class="px-2 py-0.5 rounded text-[8px] ${op.resultado === 'WIN' ? 'bg-green-400/10 text-green-400' : 'bg-red-400/10 text-red-400'}">${op.resultado}</span></td>
-                        <td class="px-4 py-4 text-right font-black"><span class="privacy-toggle">${Number(op.valor_resultado).toFixed(2)}</span></td>
+                        <td class="px-4 py-4 text-right font-black italic"><span class="privacy-toggle">${Number(op.valor_resultado).toFixed(2)}</span></td>
                     </tr>`).join('');
                 applyPrivacyUI();
             }
+        }
+
+        async function manualResetLosses() {
+            const { data: profile } = await sbClient.from('perfil_usuario').select('id').single();
+            if (profile) await sbClient.from('perfil_usuario').update({ perdas_hoje: 0 }).eq('id', profile.id);
         }
         window.onload = init;
     </script>
