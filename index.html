@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guardian AI - Terminal v3.1.20</title>
+    <title>Guardian AI - Terminal v3.1.22</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -23,7 +23,7 @@
         .rounded-terminal { border-radius: var(--radius-core); }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
         
-        /* FILTROS COLORIDOS */
+        /* FILTROS COLORIDOS DINÂMICOS */
         .filter-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 8px; }
         .filter-btn[data-cat="TUDO"].active { background: #3b82f6; border-color: #3b82f6; color: white; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); }
         .filter-btn[data-cat="B3"].active { background: #22c55e; border-color: #22c55e; color: white; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3); }
@@ -42,22 +42,22 @@
     <div class="max-w-6xl mx-auto">
         <nav class="flex justify-between items-center mb-10">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-xl"><i data-lucide="zap" class="w-6 h-6 text-white fill-white"></i></div>
-                <h1 class="text-2xl font-black italic uppercase text-white tracking-tighter">Guardian<span class="text-blue-500 font-normal">AI</span></h1>
+                <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20"><i data-lucide="zap" class="w-6 h-6 text-white fill-white"></i></div>
+                <h1 class="text-2xl font-black italic uppercase text-white tracking-tighter italic">Guardian<span class="text-blue-500 font-normal">AI</span></h1>
             </div>
             <div class="flex items-center gap-4 bg-[#161b22] px-6 py-3 rounded-2xl border border-[#30363d]">
-                <div id="conn-status" class="w-2.5 h-2.5 bg-red-500 rounded-full transition-all"></div>
-                <span id="market-status-text" class="text-[9px] font-black text-gray-400 uppercase">Verificando...</span>
-                <span id="usd-price" class="text-xs font-bold text-white border-l border-[#30363d] pl-4 uppercase">R$ 0.00</span>
+                <div id="conn-status" class="w-2.5 h-2.5 bg-red-500 rounded-full transition-all duration-500"></div>
+                <span id="market-status-text" class="text-[9px] font-black text-gray-400 uppercase italic">Offline</span>
+                <span id="usd-price" class="text-xs font-bold text-white border-l border-[#30363d] pl-4 uppercase font-black">R$ 0.00</span>
             </div>
         </nav>
 
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <section class="lg:col-span-2 space-y-8">
                 <div class="bg-[#161b22] border border-[#30363d] rounded-terminal p-8 shadow-2xl relative overflow-hidden">
-                    <div class="flex justify-between items-center mb-2">
-                        <p class="text-[10px] font-bold uppercase tracking-widest text-blue-500">Patrimônio Líquido</p>
-                        <button onclick="togglePrivacy()" class="text-gray-500 hover:text-white"><i id="privacy-icon" data-lucide="eye" class="w-5 h-5"></i></button>
+                    <div class="flex justify-between items-center mb-2 text-blue-500 font-black italic">
+                        <p class="text-[10px] font-bold uppercase tracking-widest">Patrimônio Líquido</p>
+                        <button onclick="togglePrivacy()" class="text-gray-500 hover:text-white transition-all"><i id="privacy-icon" data-lucide="eye" class="w-5 h-5"></i></button>
                     </div>
                     <h2 id="balance-display" class="text-6xl font-black text-white tracking-tighter italic mb-4 privacy-toggle">R$ 0.00</h2>
                     <div class="h-44 w-full relative">
@@ -65,7 +65,7 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar">
+                <div class="flex items-center gap-3 overflow-x-auto pb-4 no-scrollbar">
                     <button onclick="updateFilter('TUDO')" id="btn-TUDO" data-cat="TUDO" class="filter-btn active px-6 py-2.5 rounded-full text-[10px] font-black uppercase italic whitespace-nowrap"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Tudo</button>
                     <button onclick="updateFilter('B3')" id="btn-B3" data-cat="B3" class="filter-btn px-6 py-2.5 rounded-full text-[10px] font-black uppercase italic whitespace-nowrap"><i data-lucide="trending-up" class="w-3.5 h-3.5"></i> B3 Brasil</button>
                     <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn px-6 py-2.5 rounded-full text-[10px] font-black uppercase italic whitespace-nowrap"><i data-lucide="coins" class="w-3.5 h-3.5"></i> Criptoativos</button>
@@ -84,10 +84,10 @@
 
                 <div class="mt-12 space-y-6">
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="card-inner p-4 border-l-4 border-green-500"><p class="text-[9px] text-gray-500 uppercase">Assertividade (WIN)</p><h5 id="win-rate" class="text-2xl font-black text-green-400">0%</h5></div>
-                        <div class="card-inner p-4 border-l-4 border-red-500"><p class="text-[9px] text-gray-500 uppercase">Drawdown (LOSS)</p><h5 id="loss-rate" class="text-2xl font-black text-red-400">0%</h5></div>
+                        <div class="card-inner p-4 border-l-4 border-green-500"><p class="text-[9px] text-gray-500 uppercase italic">Assertividade (WIN)</p><h5 id="win-rate" class="text-2xl font-black text-green-400">0%</h5></div>
+                        <div class="card-inner p-4 border-l-4 border-red-500"><p class="text-[9px] text-gray-500 uppercase italic">Drawdown (LOSS)</p><h5 id="loss-rate" class="text-2xl font-black text-red-400">0%</h5></div>
                     </div>
-                    <div class="bg-[#161b22] border border-[#30363d] rounded-terminal overflow-hidden shadow-xl">
+                    <div class="bg-[#161b22] border border-[#30363d] rounded-terminal overflow-hidden shadow-xl font-black italic">
                         <table class="w-full text-left text-[11px]">
                             <thead class="bg-black/20 text-gray-500 uppercase border-b border-[#30363d]">
                                 <tr><th class="px-6 py-4 italic">Ativo</th><th class="px-6 py-4 italic">Resultado</th><th class="px-6 py-4 italic text-right">Valor Lucro</th></tr>
@@ -99,7 +99,7 @@
             </section>
 
             <aside class="space-y-6">
-                <div id="auto-panel" class="bg-gradient-to-br from-green-600 to-green-800 rounded-terminal p-6 text-white shadow-2xl">
+                <div id="auto-panel" class="bg-gradient-to-br from-green-600 to-green-800 rounded-terminal p-6 text-white shadow-2xl transition-all duration-700">
                     <h4 id="mode-text" class="text-2xl font-black italic mb-4 uppercase">Automático</h4>
                     <div class="space-y-4 pt-4 border-t border-white/10 font-black italic">
                         <div class="flex justify-between text-[10px] font-bold uppercase"><span>Drawdown</span><span id="loss-count">0 / 2</span></div>
@@ -146,37 +146,27 @@
             document.getElementById('market-status-text').innerText = isOpen ? "Mercado Aberto" : "Mercado Fechado";
         }
 
-        // LÓGICA DO GRÁFICO
         function updateChart(history) {
             const ctx = document.getElementById('equityChart').getContext('2d');
-            const dataPoints = history.reverse().map(op => Number(op.valor_resultado));
+            const dataPoints = [...history].reverse().map(op => Number(op.valor_resultado));
             const labels = dataPoints.map((_, i) => i);
-
             if (chart) chart.destroy();
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Evolução',
+                        label: 'Lucro/Trade',
                         data: dataPoints,
                         borderColor: '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         fill: true,
                         tension: 0.4,
-                        borderWidth: 3,
+                        borderWidth: 2,
                         pointRadius: 0
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { display: false },
-                        y: { display: false }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
             });
         }
 
@@ -216,10 +206,7 @@
         async function fetchLatestSignals() {
             const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             const container = document.getElementById('signal-container');
-            if (!data || data.length === 0) {
-                container.innerHTML = `<p class="text-gray-600 text-[10px] uppercase text-center py-10 italic">Aguardando sinais...</p>`;
-                return;
-            }
+            if (!data) return;
             const filtered = data.filter(item => {
                 if (currentFilter === 'TUDO') return true;
                 const ativo = item.ativo.toUpperCase();
@@ -230,16 +217,16 @@
             });
             document.getElementById('signal-count').innerText = `${filtered.length} Sinais Hoje`;
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="bg-[#161b22] border border-[#30363d] rounded-2xl p-10 text-center"><p class="text-gray-500 text-[10px] uppercase italic">Nenhum sinal em ${currentFilter}</p></div>`;
+                container.innerHTML = `<div class="bg-[#161b22] border border-[#30363d] rounded-2xl p-10 text-center italic text-gray-500 uppercase text-[10px] font-black italic">Aguardando sinais para ${currentFilter}...</div>`;
             } else {
                 container.innerHTML = filtered.map(item => `
                     <div onclick="this.classList.toggle('expanded')" class="signal-card bg-[#161b22] border border-[#30363d] p-6 rounded-2xl shadow-xl hover:border-blue-500/30 transition-all font-black italic">
-                        <div class="flex justify-between items-start mb-4 text-white">
+                        <div class="flex justify-between items-start mb-4 text-white font-black italic">
                             <div><span class="font-black text-2xl uppercase tracking-tighter italic text-white">${item.ativo}</span></div>
                             <span class="text-[11px] font-black ${item.score_confianca >= 8 ? 'text-green-400' : 'text-yellow-500'} font-black italic">${item.score_confianca}/10</span>
                         </div>
-                        <div class="expandable-content mb-6"><p class="text-xs text-gray-300 leading-relaxed line-clamp-2 italic">"${item.motivo_fato_relevante}"</p></div>
-                        <div class="flex justify-between items-center pt-6 border-t border-white/5 italic">
+                        <div class="expandable-content mb-6 font-black italic"><p class="text-xs text-gray-300 leading-relaxed italic line-clamp-2">"${item.motivo_fato_relevante}"</p></div>
+                        <div class="flex justify-between items-center pt-6 border-t border-white/5 font-black italic">
                             <span class="text-[9px] text-gray-500 uppercase italic font-black">${item.fonte || 'Geral'}</span>
                             <button onclick="event.stopPropagation(); alert('Executando: ${item.ativo}')" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic">Executar</button>
                         </div>
