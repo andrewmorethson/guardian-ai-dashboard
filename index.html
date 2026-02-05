@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.70</title>
+    <title>Guardian AI v3.1.71</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -60,9 +60,9 @@
                 </div>
                 <h2 id="home-balance" class="text-4xl font-black text-white italic tracking-tighter privacy-toggle">R$ 0.00</h2>
                 <div class="flex gap-4 mt-3 pt-3 border-t border-white/5">
-                    <div><p class="text-[7px] text-gray-500 uppercase">Op.</p><p id="count-in" class="text-xs text-white">0</p></div>
-                    <div><p class="text-[7px] text-green-500 uppercase">W</p><p id="count-win" class="text-xs text-green-400">0</p></div>
-                    <div><p class="text-[7px] text-red-500 uppercase">L</p><p id="count-loss" class="text-xs text-red-400">0</p></div>
+                    <div><p class="text-[7px] text-gray-500 uppercase">Operações</p><p id="count-in" class="text-xs text-white">0</p></div>
+                    <div><p class="text-[7px] text-green-500 uppercase">Win</p><p id="count-win" class="text-xs text-green-400">0</p></div>
+                    <div><p class="text-[7px] text-red-500 uppercase">Loss</p><p id="count-loss" class="text-xs text-red-400">0</p></div>
                 </div>
             </div>
 
@@ -140,8 +140,8 @@
                 await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
                 await fetchLatestSignals();
                 
-                // UX: CHECK VERDE AO SUCESSO
-                btn.style.setProperty('background-color', '#16a34a', 'important'); 
+                // UX: CHECK AZUL ROYAL AO SUCESSO
+                btn.style.setProperty('background-color', '#2563eb', 'important'); 
                 if(icon) icon.setAttribute('data-lucide', 'check');
                 lucide.createIcons();
                 
@@ -149,7 +149,7 @@
                     btn.style.backgroundColor = ''; 
                     if(icon) icon.setAttribute('data-lucide', 'refresh-cw');
                     lucide.createIcons();
-                }, 800);
+                }, 1000); // Tempo aumentado para garantir visibilidade do check
             } catch(e) { btn.style.backgroundColor = '#dc2626'; setTimeout(() => btn.style.backgroundColor = '', 1000); }
             finally { if(icon) icon.classList.remove('rotate-icon'); }
         }
@@ -214,7 +214,7 @@
             const { data: profile } = await sbClient.from('perfil_usuario').select('id').limit(1).maybeSingle();
             if (profile && btn) {
                 await sbClient.from('perfil_usuario').update({ perdas_hoje: 0 }).eq('id', profile.id);
-                btn.style.setProperty('background-color', '#16a34a', 'important'); 
+                btn.style.setProperty('background-color', '#2563eb', 'important'); 
                 btn.style.color = 'white';
                 setTimeout(() => { btn.style.backgroundColor = ''; btn.style.color = ''; fetchBanca(); }, 300);
             }
