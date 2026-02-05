@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.83</title>
+    <title>Guardian AI v3.1.89</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -73,7 +73,7 @@
                     <button onclick="updateFilter('B3')" id="btn-B3" data-cat="B3" class="filter-btn">B3</button>
                     <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn">Cripto</button>
                 </div>
-                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full flex-shrink-0 transition-all duration-300">
+                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full flex-shrink-0 transition-all duration-300 shadow-lg shadow-blue-900/20">
                     <i data-lucide="refresh-cw" class="w-4 h-4 text-white"></i>
                 </button>
             </div>
@@ -134,150 +134,3 @@
 
         async function triggerGuardianEngine() {
             const btn = document.getElementById('refresh-btn-main'); if(!btn) return;
-            const icon = btn.querySelector('i'); if(icon) icon.classList.add('rotate-icon');
-            try {
-                await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
-                await fetchLatestSignals();
-                btn.style.setProperty('background-color', '#2563eb', 'important'); 
-                if(icon) icon.setAttribute('data-lucide', 'check');
-                lucide.createIcons();
-                setTimeout(() => { btn.style.backgroundColor = ''; if(icon) icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons(); }, 1500); 
-            } catch(e) { btn.style.backgroundColor = '#dc2626'; setTimeout(() => btn.style.backgroundColor = '', 1000); }
-            finally { if(icon) icon.classList.remove('rotate-icon'); }
-        }
-
-        async function executeTrade(ativo, btn) {
-            btn.disabled = true;
-            btn.style.setProperty('background-color', '#2563eb', 'important');
-            btn.innerHTML = 'ENVIANDO... <i data-lucide="loader-2" class="w-3 h-3 ml-2 animate-spin"></i>';
-            lucide.createIcons();
-            try {
-                const res = await fetch(`${CONFIG.url}/functions/v1/binance-executor`, { 
-                    method: 'POST', 
-                    headers: { 'Authorization': `Bearer ${CONFIG.key}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbol: ativo.replace("/", ""), side: "BUY", amount: 10 })
-                });
-                if(!res.ok) throw new Error();
-                btn.innerHTML = 'CONCLUÍDO <i data-lucide="check" class="w-3 h-3 ml-2"></i>';
-                lucide.createIcons();
-                setTimeout(() => { btn.disabled = false; btn.style.backgroundColor = ''; btn.innerHTML = 'EXECUTAR'; lucide.createIcons(); }, 3000);
-            } catch (e) { btn.style.backgroundColor = '#dc2626'; btn.innerText = 'ERRO'; setTimeout(() => { btn.disabled = false; btn.style.backgroundColor = ''; btn.innerHTML = 'EXECUTAR'; lucide.createIcons(); }, 3000); }
-        }
-
-        async function fetchLatestSignals() {
-            const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
-            const container = document.getElementById('signal-container'); if(!container) return;
-            if(!data || data.length === 0) { container.innerHTML = `<div class="p-10 text-center card-inner border-dashed font-black italic"><p class="text-xs text-gray-500 uppercase">Sem sinais no momento</p></div>`; return; }
-            
-            const filtered = data.filter(i => {
-                if(currentFilter === 'TUDO') return true;
-                const asset = i.ativo.toUpperCase();
-                const source = (i.fonte || "").toUpperCase();
-                if(currentFilter === 'CRIPTO') return asset.includes('BTC') || asset.includes('ETH') || asset.includes('USDT');
-                if(currentFilter === 'USA') return asset.includes('$') || source.includes('USA') || source.includes('TESTNET');
-                if(currentFilter === 'B3') return source.includes('B3') || (!asset.includes('/') && !asset.includes('USDT'));
-                return false;
-            });
-
-            container.innerHTML = filtered.map(item => {
-                const isUp = (parseFloat(item.take_profit) > parseFloat(item.preco_entrada));
-                const pct = (Math.random() * (4.2 - 0.8) + 0.8).toFixed(1);
-                return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="flex items-center gap-2">
-                            <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
-                            <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1">
-                                <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
-                                <span class="text-[10px]">${pct}%</span>
-                            </div>
-                        </div>
-                        <span class="text-[9px] text-blue-400 font-black tracking-widest uppercase italic">Score ${item.score_confianca}/10</span>
-                    </div>
-                    <div class="grid grid-cols-3 gap-2 mb-4 bg-black/20 p-3 rounded-xl border border-white/5 font-black italic text-center">
-                        <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white tracking-tighter">${item.preco_entrada || '---'}</span></div>
-                        <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 tracking-tighter">${item.take_profit || '---'}</span></div>
-                        <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 tracking-tighter">${item.stop_loss || '---'}</span></div>
-                    </div>
-                    <p class="text-[10px] text-gray-400 leading-tight mb-4">"${item.motivo_fato_relevante}"</p>
-                    <div class="flex justify-between items-center pt-3 border-t border-white/5">
-                        <div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte || 'Guardian AI'}</div>
-                        <button onclick="executeTrade('${item.ativo}', this)" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic flex items-center transition-all duration-300">EXECUTAR</button>
-                    </div>
-                </div>`;
-            }).join(''); lucide.createIcons();
-        }
-
-        async function fetchBanca() {
-            const { data } = await sbClient.from('perfil_usuario').select('*').limit(1).maybeSingle();
-            if(data) {
-                const s = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
-                document.getElementById('home-balance').innerText = s;
-                document.getElementById('wallet-balance').innerText = s;
-                document.getElementById('w-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
-                document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
-                document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
-                document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
-                const btn = document.getElementById('reset-safety-btn');
-                if(btn) btn.disabled = (data.perdas_hoje < 2);
-            }
-        }
-
-        async function fetchHistoryTable() {
-            const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
-            const body = document.getElementById('history-body'); if(!data || !body) return;
-            body.innerHTML = data.map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
-            const lastTwo = data.slice(0, 2); const d1 = document.getElementById('dot-1'); const d2 = document.getElementById('dot-2');
-            if(d1 && d2) {
-                d1.style.backgroundColor = (lastTwo[0]?.resultado === 'LOSS') ? '#dc2626' : '#374151';
-                d2.style.backgroundColor = (lastTwo[1]?.resultado === 'LOSS') ? '#dc2626' : '#374151';
-            }
-        }
-
-        async function manualResetLosses() {
-            const btn = document.getElementById('reset-safety-btn');
-            const { data: profile } = await sbClient.from('perfil_usuario').select('id').limit(1).maybeSingle();
-            if (profile && btn) {
-                await sbClient.from('perfil_usuario').update({ perdas_hoje: 0 }).eq('id', profile.id);
-                btn.style.setProperty('background-color', '#2563eb', 'important'); 
-                btn.style.color = 'white';
-                setTimeout(() => { btn.style.backgroundColor = ''; btn.style.color = ''; fetchBanca(); }, 300);
-            }
-        }
-
-        async function updateMonitors() {
-            try {
-                const [u, b, e] = await Promise.all([ 
-                    fetch('https://economia.awesomeapi.com.br/last/USD-BRL').then(r => r.json()), 
-                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT').then(r => r.json()),
-                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT').then(r => r.json())
-                ]);
-                document.getElementById('usd-price').innerText = `R$ ${Number(u.USDBRL.bid).toFixed(2)}`;
-                document.getElementById('btc-price').innerText = `$ ${Number(b.price).toFixed(0)}`;
-                document.getElementById('eth-price').innerText = `$ ${Number(e.price).toFixed(0)}`;
-                const h = new Date().getHours(); const op = h >= 9 && h < 18;
-                const cs = document.getElementById('conn-status'); if(cs) cs.style.backgroundColor = op ? '#4ade80' : '#ef4444';
-                const mst = document.getElementById('market-status-text'); if(mst) mst.innerText = op ? 'OPEN' : 'CLOSED';
-            } catch(e) {}
-        }
-
-        function updateFilter(cat) { 
-            currentFilter = cat; 
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
-            const btns = document.querySelectorAll(`.filter-btn[data-cat="${cat}"]`);
-            btns.forEach(b => b.classList.add('active'));
-            fetchLatestSignals(); 
-        }
-
-        async function init() {
-            sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
-            const lastTab = localStorage.getItem('guardian_active_tab') || 'home';
-            isPrivate = localStorage.getItem('guardian_privacy') === 'true';
-            lucide.createIcons(); await Promise.all([fetchBanca(), fetchLatestSignals(), updateMonitors(), fetchHistoryTable()]);
-            switchTab(lastTab); applyPrivacyUI();
-            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchBanca(); fetchLatestSignals(); fetchHistoryTable(); }).subscribe();
-            setInterval(updateMonitors, 30000);
-        }
-        window.onload = init;
-    </script>
-</body>
-</html>
