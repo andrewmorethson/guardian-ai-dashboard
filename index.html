@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.44</title>
+    <title>Guardian AI v3.1.45</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -73,9 +73,7 @@
                     <button onclick="updateFilter('B3')" id="btn-B3" data-cat="B3" class="filter-btn">B3</button>
                     <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn">Cripto</button>
                 </div>
-                <button id="refresh-btn" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full flex-shrink-0 transition-colors duration-200">
-                    <i data-lucide="refresh-cw" class="w-4 h-4 text-white"></i>
-                </button>
+                <button id="refresh-btn" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full flex-shrink-0 transition-all duration-300"><i data-lucide="refresh-cw" class="w-4 h-4 text-white"></i></button>
             </div>
             <div id="signal-container" class="grid grid-cols-1 gap-4"></div>
         </section>
@@ -100,7 +98,7 @@
                     <tbody id="history-body" class="divide-y divide-white/5 italic"></tbody>
                 </table>
             </div>
-            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-white/5 py-4 rounded-xl text-[8px] uppercase border border-white/10 font-black italic transition-colors duration-200">Resetar Trava de Segurança</button>
+            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-white/5 py-4 rounded-xl text-[8px] uppercase border border-white/10 font-black italic transition-all">Resetar Trava de Segurança</button>
         </section>
     </main>
 
@@ -141,26 +139,22 @@
             const btn = document.getElementById('refresh-btn');
             const icon = btn.querySelector('i');
             
-            // Estado de Carregamento
             icon.classList.add('rotate-icon');
-            btn.classList.replace('bg-blue-600', 'bg-blue-400');
+            btn.style.backgroundColor = '#60a5fa'; // bg-blue-400
             
             try {
                 await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
                 await fetchLatestSignals();
                 
-                // Feedback Verde Exato por 300ms
-                btn.classList.remove('bg-blue-400');
-                btn.classList.add('bg-green-600');
-                
+                // Feedback Verde Exato 300ms
+                btn.style.backgroundColor = '#16a34a'; // bg-green-600
                 setTimeout(() => {
-                    btn.classList.remove('bg-green-600');
-                    btn.classList.add('bg-blue-600');
+                    btn.style.backgroundColor = '#2563eb'; // bg-blue-600 original
                 }, 300);
 
             } catch(e) { 
-                btn.classList.replace('bg-blue-400', 'bg-red-600'); 
-                setTimeout(() => btn.classList.replace('bg-red-600', 'bg-blue-600'), 1000); 
+                btn.style.backgroundColor = '#dc2626'; // bg-red-600 
+                setTimeout(() => btn.style.backgroundColor = '#2563eb', 1000); 
             }
             finally { icon.classList.remove('rotate-icon'); }
         }
@@ -206,7 +200,7 @@
                     <p class="text-[10px] text-gray-400 leading-tight mb-4">"${item.motivo_fato_relevante}"</p>
                     <div class="flex justify-between items-center pt-3 border-t border-white/5">
                         <div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte || 'Guardian AI'}</div>
-                        <button onclick="alert('Iniciando Execução em ${item.ativo}')" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic">Executar</button>
+                        <button onclick="alert('Executando: ${item.ativo}')" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic">Executar</button>
                     </div>
                 </div>`;
             }).join('');
@@ -232,16 +226,13 @@
                 document.getElementById('count-win').innerText = data.filter(o => o.resultado === 'WIN').length;
                 document.getElementById('count-loss').innerText = data.filter(o => o.resultado === 'LOSS').length;
                 document.getElementById('count-in').innerText = data.length;
-                
                 const lastTwo = data.slice(0, 2);
                 const d1 = document.getElementById('dot-1'); const d2 = document.getElementById('dot-2');
                 d1.className = d2.className = "w-2.5 h-2.5 rounded-full bg-gray-700";
-                
                 if (lastTwo.length > 0 && lastTwo[0].resultado === 'LOSS') {
                     d1.className = "w-2.5 h-2.5 rounded-full bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.5)]";
                     if (lastTwo.length > 1 && lastTwo[1].resultado === 'LOSS') d2.className = "w-2.5 h-2.5 rounded-full bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.5)]";
                 }
-                
                 document.getElementById('history-body').innerHTML = data.slice(0, 10).map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
             }
         }
@@ -251,11 +242,9 @@
             const { data: profile } = await sbClient.from('perfil_usuario').select('id').single();
             if (profile) {
                 await sbClient.from('perfil_usuario').update({ perdas_hoje: 0 }).eq('id', profile.id);
-                
-                // Feedback Verde Exato por 300ms
-                btn.classList.replace('bg-white/5', 'bg-green-600');
+                btn.style.backgroundColor = '#16a34a';
                 setTimeout(() => {
-                    btn.classList.replace('bg-green-600', 'bg-white/5');
+                    btn.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
                 }, 300);
             }
         }
