@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.56</title>
+    <title>Guardian AI v3.1.57</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -115,8 +115,7 @@
         function togglePrivacy() { isPrivate = !isPrivate; localStorage.setItem('guardian_privacy', isPrivate); applyPrivacyUI(); }
         function applyPrivacyUI() { 
             document.querySelectorAll('.privacy-toggle').forEach(el => isPrivate ? el.classList.add('privacy-hidden') : el.classList.remove('privacy-hidden'));
-            const icons = ['privacy-icon-home', 'privacy-icon-wallet'];
-            icons.forEach(id => { const el = document.getElementById(id); if(el) { el.setAttribute('data-lucide', isPrivate ? 'eye-off' : 'eye'); lucide.createIcons(); } });
+            ['privacy-icon-home', 'privacy-icon-wallet'].forEach(id => { const el = document.getElementById(id); if(el) { el.setAttribute('data-lucide', isPrivate ? 'eye-off' : 'eye'); lucide.createIcons(); } });
         }
         function switchTab(id, el) { 
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
@@ -128,14 +127,18 @@
         async function triggerGuardianEngine() {
             const btn = document.getElementById('refresh-btn-main'); if(!btn) return;
             const icon = btn.querySelector('i'); if(icon) icon.classList.add('rotate-icon');
-            btn.style.backgroundColor = '#60a5fa'; 
+            
+            // COR DO LOAD MUDADA PARA VERDE
+            btn.style.backgroundColor = '#16a34a'; 
+            
             try {
                 await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
                 await fetchLatestSignals();
-                btn.style.backgroundColor = '#16a34a'; 
-                setTimeout(() => { btn.style.backgroundColor = ''; }, 300);
-            } catch(e) { btn.style.backgroundColor = '#dc2626'; setTimeout(() => btn.style.backgroundColor = '', 1000); }
-            finally { if(icon) icon.classList.remove('rotate-icon'); }
+                setTimeout(() => { btn.style.backgroundColor = '#2563eb'; }, 300);
+            } catch(e) { 
+                btn.style.backgroundColor = '#dc2626'; 
+                setTimeout(() => btn.style.backgroundColor = '#2563eb', 1000); 
+            } finally { if(icon) icon.classList.remove('rotate-icon'); }
         }
 
         async function fetchLatestSignals() {
@@ -146,7 +149,7 @@
                 if(currentFilter === 'CRIPTO') return i.ativo.includes('BTC') || i.ativo.includes('ETH');
                 return i.fonte?.toUpperCase().includes(currentFilter);
             });
-            if(filtered.length === 0) { container.innerHTML = `<div class="p-10 text-center card-inner border-dashed"><p class="text-xs text-gray-500 uppercase font-black">Não temos notícias sobre o assunto no momento</p></div>`; return; }
+            if(filtered.length === 0) { container.innerHTML = `<div class="p-10 text-center card-inner border-dashed"><p class="text-xs text-gray-500 uppercase font-black">Não temos notícias no momento</p></div>`; return; }
             container.innerHTML = filtered.map(item => {
                 const isUp = (parseFloat(item.take_profit) > parseFloat(item.preco_entrada));
                 const pct = (Math.random() * (4.2 - 0.8) + 0.8).toFixed(1);
@@ -170,7 +173,7 @@
                     <p class="text-[10px] text-gray-400 leading-tight mb-4">"${item.motivo_fato_relevante}"</p>
                     <div class="flex justify-between items-center pt-3 border-t border-white/5">
                         <div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte || 'Guardian AI'}</div>
-                        <button onclick="alert('Iniciando Execução')" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic active:scale-95 transition-all">Executar</button>
+                        <button onclick="alert('Executando')" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic active:scale-95 transition-all">Executar</button>
                     </div>
                 </div>`;
             }).join(''); lucide.createIcons();
