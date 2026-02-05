@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.77</title>
+    <title>Guardian AI v3.1.83</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -73,7 +73,7 @@
                     <button onclick="updateFilter('B3')" id="btn-B3" data-cat="B3" class="filter-btn">B3</button>
                     <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn">Cripto</button>
                 </div>
-                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full flex-shrink-0 transition-all duration-300 shadow-lg shadow-blue-900/20">
+                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full flex-shrink-0 transition-all duration-300">
                     <i data-lucide="refresh-cw" class="w-4 h-4 text-white"></i>
                 </button>
             </div>
@@ -166,15 +166,19 @@
 
         async function fetchLatestSignals() {
             const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
-            const container = document.getElementById('signal-container'); if(!data || !container) return;
+            const container = document.getElementById('signal-container'); if(!container) return;
+            if(!data || data.length === 0) { container.innerHTML = `<div class="p-10 text-center card-inner border-dashed font-black italic"><p class="text-xs text-gray-500 uppercase">Sem sinais no momento</p></div>`; return; }
+            
             const filtered = data.filter(i => {
                 if(currentFilter === 'TUDO') return true;
-                if(currentFilter === 'CRIPTO') return i.ativo.toUpperCase().includes('BTC') || i.ativo.toUpperCase().includes('ETH');
-                if(currentFilter === 'USA') return i.fonte?.toUpperCase().includes('USA') || i.ativo.includes('$');
-                if(currentFilter === 'B3') return i.fonte?.toUpperCase().includes('B3');
-                return i.fonte?.toUpperCase().includes(currentFilter);
+                const asset = i.ativo.toUpperCase();
+                const source = (i.fonte || "").toUpperCase();
+                if(currentFilter === 'CRIPTO') return asset.includes('BTC') || asset.includes('ETH') || asset.includes('USDT');
+                if(currentFilter === 'USA') return asset.includes('$') || source.includes('USA') || source.includes('TESTNET');
+                if(currentFilter === 'B3') return source.includes('B3') || (!asset.includes('/') && !asset.includes('USDT'));
+                return false;
             });
-            if(filtered.length === 0) { container.innerHTML = `<div class="p-10 text-center card-inner border-dashed font-black italic"><p class="text-xs text-gray-500 uppercase">Sem sinais no momento</p></div>`; return; }
+
             container.innerHTML = filtered.map(item => {
                 const isUp = (parseFloat(item.take_profit) > parseFloat(item.preco_entrada));
                 const pct = (Math.random() * (4.2 - 0.8) + 0.8).toFixed(1);
@@ -254,6 +258,14 @@
                 const cs = document.getElementById('conn-status'); if(cs) cs.style.backgroundColor = op ? '#4ade80' : '#ef4444';
                 const mst = document.getElementById('market-status-text'); if(mst) mst.innerText = op ? 'OPEN' : 'CLOSED';
             } catch(e) {}
+        }
+
+        function updateFilter(cat) { 
+            currentFilter = cat; 
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
+            const btns = document.querySelectorAll(`.filter-btn[data-cat="${cat}"]`);
+            btns.forEach(b => b.classList.add('active'));
+            fetchLatestSignals(); 
         }
 
         async function init() {
