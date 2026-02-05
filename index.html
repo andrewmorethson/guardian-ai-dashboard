@@ -60,9 +60,9 @@
                 </div>
                 <h2 id="home-balance" class="text-4xl font-black text-white italic tracking-tighter privacy-toggle">R$ 0.00</h2>
                 <div class="flex gap-4 mt-3 pt-3 border-t border-white/5">
-                    <div><p class="text-[7px] text-gray-500 uppercase">Operações</p><p id="count-in" class="text-xs text-white">0</p></div>
-                    <div><p class="text-[7px] text-green-500 uppercase">Win</p><p id="count-win" class="text-xs text-green-400">0</p></div>
-                    <div><p class="text-[7px] text-red-500 uppercase">Loss</p><p id="count-loss" class="text-xs text-red-400">0</p></div>
+                    <div><p class="text-[7px] text-gray-500 uppercase">Op.</p><p id="count-in" class="text-xs text-white">0</p></div>
+                    <div><p class="text-[7px] text-green-500 uppercase">W</p><p id="count-win" class="text-xs text-green-400">0</p></div>
+                    <div><p class="text-[7px] text-red-500 uppercase">L</p><p id="count-loss" class="text-xs text-red-400">0</p></div>
                 </div>
             </div>
 
@@ -127,7 +127,7 @@
         async function triggerGuardianEngine() {
             const btn = document.getElementById('refresh-btn-main'); if(!btn) return;
             const icon = btn.querySelector('i'); if(icon) icon.classList.add('rotate-icon');
-            btn.style.backgroundColor = '#ef4444'; // LOAD VERMELHO PRESERVADO
+            btn.style.backgroundColor = '#ef4444'; 
             try {
                 await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
                 await fetchLatestSignals();
@@ -147,39 +147,28 @@
             if(filtered.length === 0) { container.innerHTML = `<div class="p-10 text-center card-inner border-dashed"><p class="text-xs text-gray-500 uppercase font-black">Sem notícias no momento</p></div>`; return; }
             container.innerHTML = filtered.map(item => {
                 const isUp = (parseFloat(item.take_profit) > parseFloat(item.preco_entrada));
-                const pct = (Math.random() * (4.2 - 0.8) + 0.8).toFixed(1);
                 return `
                 <div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                     <div class="flex justify-between items-start mb-3">
-                        <div class="flex items-center gap-2">
-                            <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
-                            <div class="flex items-center gap-1 ${isUp ? 'text-green-500' : 'text-red-500'} font-black italic">
-                                <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
-                                <span class="text-[10px]">${pct}%</span>
-                            </div>
-                        </div>
+                        <div class="flex items-center gap-2"><span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span><div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic"><i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i></div></div>
                         <span class="text-[9px] text-blue-400 font-black tracking-widest uppercase italic">Score ${item.score_confianca}/10</span>
                     </div>
                     <p class="text-[10px] text-gray-400 leading-tight mb-4">"${item.motivo_fato_relevante}"</p>
-                    <div class="flex justify-between items-center pt-3 border-t border-white/5">
-                        <div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte || 'Guardian AI'}</div>
-                        <button onclick="alert('Iniciando Execução')" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic">Executar</button>
-                    </div>
+                    <div class="flex justify-between items-center pt-3 border-t border-white/5"><div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte || 'Guardian AI'}</div><button onclick="alert('Executando')" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic">Executar</button></div>
                 </div>`;
             }).join(''); lucide.createIcons();
         }
 
         async function fetchBanca() {
-            // FIX: perfil_usuario COM UNDERLINE E LIMIT(1)
             const { data } = await sbClient.from('perfil_usuario').select('*').limit(1).maybeSingle();
             if(data) {
                 const s = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
-                const hb = document.getElementById('home-balance'); if(hb) hb.innerText = s;
-                const wb = document.getElementById('wallet-balance'); if(wb) wb.innerText = s;
-                const br = document.getElementById('w-bruto'); if(br) br.innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
-                const li = document.getElementById('w-liquido'); if(li) li.innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
-                const rv = document.getElementById('w-reinvest'); if(rv) rv.innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
-                const rs = document.getElementById('w-reserve'); if(rs) rs.innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
+                document.getElementById('home-balance').innerText = s;
+                document.getElementById('wallet-balance').innerText = s;
+                document.getElementById('w-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
+                document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
+                document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
+                document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
             }
         }
 
@@ -210,8 +199,8 @@
                 document.getElementById('btc-price').innerText = `$ ${Number(b.price).toFixed(0)}`;
                 document.getElementById('eth-price').innerText = `$ ${Number(e.price).toFixed(0)}`;
                 const h = new Date().getHours(); const op = h >= 9 && h < 18;
-                const cs = document.getElementById('conn-status'); if(cs) cs.style.backgroundColor = '#4ade80';
-                const mst = document.getElementById('market-status-text'); if(mst) mst.innerText = 'OPEN';
+                const cs = document.getElementById('conn-status'); if(cs) cs.style.backgroundColor = op ? '#4ade80' : '#ef4444';
+                const mst = document.getElementById('market-status-text'); if(mst) mst.innerText = op ? 'OPEN' : 'CLOSED';
             } catch(e) {}
         }
 
