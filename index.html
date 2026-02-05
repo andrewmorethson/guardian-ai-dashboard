@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.65</title>
+    <title>Guardian AI v3.1.66</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -139,8 +139,7 @@
             const btn = document.getElementById('refresh-btn-main'); if(!btn) return;
             const icon = btn.querySelector('i'); if(icon) icon.classList.add('rotate-icon');
             
-            // COR DO LOAD MUDADA PARA VERDE
-            btn.style.backgroundColor = '#16a34a'; 
+            btn.style.backgroundColor = '#16a34a'; // VERDE NO LOAD
             
             try {
                 await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
@@ -202,7 +201,7 @@
             const { data: profile } = await sbClient.from('perfil_usuario').select('id').limit(1).maybeSingle();
             if (profile && btn) {
                 await sbClient.from('perfil_usuario').update({ perdas_hoje: 0 }).eq('id', profile.id);
-                btn.style.backgroundColor = '#16a34a'; btn.style.color = 'white';
+                btn.style.backgroundColor = '#16a34a'; btn.style.color = 'white'; // VERDE NO RESET
                 setTimeout(() => { btn.style.backgroundColor = ''; btn.style.color = ''; }, 300);
             }
         }
