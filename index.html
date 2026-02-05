@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.66</title>
+    <title>Guardian AI v3.1.67</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -60,9 +60,9 @@
                 </div>
                 <h2 id="home-balance" class="text-4xl font-black text-white italic tracking-tighter privacy-toggle">R$ 0.00</h2>
                 <div class="flex gap-4 mt-3 pt-3 border-t border-white/5">
-                    <div><p class="text-[7px] text-gray-500 uppercase">Operações</p><p id="count-in" class="text-xs text-white">0</p></div>
-                    <div><p class="text-[7px] text-green-500 uppercase">Win</p><p id="count-win" class="text-xs text-green-400">0</p></div>
-                    <div><p class="text-[7px] text-red-500 uppercase">Loss</p><p id="count-loss" class="text-xs text-red-400">0</p></div>
+                    <div><p class="text-[7px] text-gray-500 uppercase">Op.</p><p id="count-in" class="text-xs text-white">0</p></div>
+                    <div><p class="text-[7px] text-green-500 uppercase">W</p><p id="count-win" class="text-xs text-green-400">0</p></div>
+                    <div><p class="text-[7px] text-red-500 uppercase">L</p><p id="count-loss" class="text-xs text-red-400">0</p></div>
                 </div>
             </div>
 
@@ -95,7 +95,7 @@
                 </div>
             </div>
 
-            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic transition-colors duration-200">Resetar Trava de Segurança</button>
+            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed">Resetar Trava de Segurança</button>
 
             <div class="flex items-center gap-2 px-1">
                 <i data-lucide="history" class="w-3 h-3 text-blue-500"></i>
@@ -120,17 +120,14 @@
         let sbClient, currentFilter = 'TUDO', isPrivate = false;
 
         function togglePrivacy() { isPrivate = !isPrivate; localStorage.setItem('guardian_privacy', isPrivate); applyPrivacyUI(); }
-        
         function applyPrivacyUI() { 
             document.querySelectorAll('.privacy-toggle').forEach(el => isPrivate ? el.classList.add('privacy-hidden') : el.classList.remove('privacy-hidden'));
             ['privacy-icon-home', 'privacy-icon-wallet'].forEach(id => { const el = document.getElementById(id); if(el) { el.setAttribute('data-lucide', isPrivate ? 'eye-off' : 'eye'); lucide.createIcons(); } });
         }
-
         function switchTab(id) { 
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            document.getElementById(`sec-${id}`).classList.add('active'); 
-            document.getElementById(`nav-${id}`).classList.add('active');
+            document.getElementById(`sec-${id}`).classList.add('active'); document.getElementById(`nav-${id}`).classList.add('active');
             localStorage.setItem('guardian_active_tab', id);
             lucide.createIcons(); if(id === 'wallet') fetchHistoryTable(); applyPrivacyUI();
         }
@@ -138,17 +135,13 @@
         async function triggerGuardianEngine() {
             const btn = document.getElementById('refresh-btn-main'); if(!btn) return;
             const icon = btn.querySelector('i'); if(icon) icon.classList.add('rotate-icon');
-            
-            btn.style.backgroundColor = '#16a34a'; // VERDE NO LOAD
-            
+            btn.style.setProperty('background-color', '#16a34a', 'important'); 
             try {
                 await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
                 await fetchLatestSignals();
                 setTimeout(() => { btn.style.backgroundColor = ''; }, 300);
-            } catch(e) { 
-                btn.style.backgroundColor = '#dc2626'; 
-                setTimeout(() => btn.style.backgroundColor = '', 1000); 
-            } finally { if(icon) icon.classList.remove('rotate-icon'); }
+            } catch(e) { btn.style.backgroundColor = '#dc2626'; setTimeout(() => btn.style.backgroundColor = '', 1000); }
+            finally { if(icon) icon.classList.remove('rotate-icon'); }
         }
 
         async function fetchLatestSignals() {
@@ -156,23 +149,26 @@
             const container = document.getElementById('signal-container'); if(!data || !container) return;
             const filtered = data.filter(i => {
                 if(currentFilter === 'TUDO') return true;
-                if(currentFilter === 'CRIPTO') return i.ativo.toUpperCase().includes('BTC') || i.ativo.toUpperCase().includes('ETH') || i.ativo.toUpperCase().includes('SOL');
+                if(currentFilter === 'CRIPTO') return i.ativo.toUpperCase().includes('BTC') || i.ativo.toUpperCase().includes('ETH');
                 if(currentFilter === 'USA') return i.fonte?.toUpperCase().includes('USA') || i.ativo.includes('$');
-                if(currentFilter === 'B3') return i.fonte?.toUpperCase().includes('B3') || i.fonte?.toUpperCase().includes('BRASIL');
+                if(currentFilter === 'B3') return i.fonte?.toUpperCase().includes('B3');
                 return i.fonte?.toUpperCase().includes(currentFilter);
             });
             if(filtered.length === 0) { container.innerHTML = `<div class="p-10 text-center card-inner border-dashed"><p class="text-xs text-gray-500 uppercase font-black">Sem sinais no momento</p></div>`; return; }
             container.innerHTML = filtered.map(item => {
                 const isUp = (parseFloat(item.take_profit) > parseFloat(item.preco_entrada));
-                const pct = (Math.random() * (4.2 - 0.8) + 0.8).toFixed(1);
-                return `
-                <div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
+                return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                     <div class="flex justify-between items-start mb-3">
-                        <div class="flex items-center gap-2"><span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span><div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic"><i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i><span class="text-[10px]">${pct}%</span></div></div>
+                        <div class="flex items-center gap-2"><span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span><div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic"><i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i></div></div>
                         <span class="text-[9px] text-blue-400 font-black tracking-widest uppercase italic">Score ${item.score_confianca}/10</span>
                     </div>
+                    <div class="grid grid-cols-3 gap-2 mb-4 bg-black/20 p-3 rounded-xl border border-white/5 font-black italic text-center">
+                        <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white tracking-tighter">${item.preco_entrada || '---'}</span></div>
+                        <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 tracking-tighter">${item.take_profit || '---'}</span></div>
+                        <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 tracking-tighter">${item.stop_loss || '---'}</span></div>
+                    </div>
                     <p class="text-[10px] text-gray-400 leading-tight mb-4">"${item.motivo_fato_relevante}"</p>
-                    <div class="flex justify-between items-center pt-3 border-t border-white/5"><div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte || 'Guardian AI'}</div><button onclick="alert('Executando')" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic">Executar</button></div>
+                    <div class="flex justify-between items-center pt-3 border-t border-white/5"><div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte || 'Guardian AI'}</div><button class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic">Executar</button></div>
                 </div>`;
             }).join(''); lucide.createIcons();
         }
@@ -187,6 +183,10 @@
                 document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
                 document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
                 document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
+                
+                // LÓGICA DA TRAVA
+                const btn = document.getElementById('reset-safety-btn');
+                if(btn) btn.disabled = (data.perdas_hoje < 2);
             }
         }
 
@@ -194,6 +194,12 @@
             const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
             const body = document.getElementById('history-body'); if(!data || !body) return;
             body.innerHTML = data.map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
+            
+            const lastTwo = data.slice(0, 2); const d1 = document.getElementById('dot-1'); const d2 = document.getElementById('dot-2');
+            if(d1 && d2) {
+                d1.style.backgroundColor = (lastTwo[0]?.resultado === 'LOSS') ? '#dc2626' : '#374151';
+                d2.style.backgroundColor = (lastTwo[1]?.resultado === 'LOSS') ? '#dc2626' : '#374151';
+            }
         }
 
         async function manualResetLosses() {
@@ -201,8 +207,8 @@
             const { data: profile } = await sbClient.from('perfil_usuario').select('id').limit(1).maybeSingle();
             if (profile && btn) {
                 await sbClient.from('perfil_usuario').update({ perdas_hoje: 0 }).eq('id', profile.id);
-                btn.style.backgroundColor = '#16a34a'; btn.style.color = 'white'; // VERDE NO RESET
-                setTimeout(() => { btn.style.backgroundColor = ''; btn.style.color = ''; }, 300);
+                btn.style.backgroundColor = '#16a34a'; btn.style.color = 'white';
+                setTimeout(() => { btn.style.backgroundColor = ''; btn.style.color = ''; fetchBanca(); }, 300);
             }
         }
 
@@ -220,14 +226,6 @@
                 const cs = document.getElementById('conn-status'); if(cs) cs.style.backgroundColor = op ? '#4ade80' : '#ef4444';
                 const mst = document.getElementById('market-status-text'); if(mst) mst.innerText = op ? 'OPEN' : 'CLOSED';
             } catch(e) {}
-        }
-
-        function updateFilter(cat) { 
-            currentFilter = cat; 
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
-            const btns = document.querySelectorAll(`.filter-btn[data-cat="${cat}"]`);
-            btns.forEach(b => b.classList.add('active'));
-            fetchLatestSignals(); 
         }
 
         async function init() {
