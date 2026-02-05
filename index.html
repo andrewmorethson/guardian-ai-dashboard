@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.68</title>
+    <title>Guardian AI v3.1.69</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -133,9 +133,9 @@
         }
 
         async function triggerGuardianEngine() {
+            // FIX DEFINITIVO PARA O BOTÃO
             const btn = document.getElementById('refresh-btn-main'); if(!btn) return;
             const icon = btn.querySelector('i'); if(icon) icon.classList.add('rotate-icon');
-            // FORÇA COR VERDE IMEDIATA AO CLIQUE
             btn.style.setProperty('background-color', '#16a34a', 'important'); 
             try {
                 await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
@@ -148,7 +148,6 @@
         async function fetchLatestSignals() {
             const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             const container = document.getElementById('signal-container'); if(!data || !container) return;
-            // FILTRO CORRIGIDO
             const filtered = data.filter(i => {
                 if(currentFilter === 'TUDO') return true;
                 if(currentFilter === 'CRIPTO') return i.ativo.toUpperCase().includes('BTC') || i.ativo.toUpperCase().includes('ETH');
@@ -170,7 +169,7 @@
                         <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 tracking-tighter">${item.stop_loss || '---'}</span></div>
                     </div>
                     <p class="text-[10px] text-gray-400 leading-tight mb-4">"${item.motivo_fato_relevante}"</p>
-                    <div class="flex justify-between items-center pt-3 border-t border-white/5"><div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte || 'Guardian AI'}</div><button class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic">Executar</button></div>
+                    <div class="flex justify-between items-center pt-3 border-t border-white/5"><div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte || 'Guardian AI'}</div><button onclick="alert('Executando')" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic">Executar</button></div>
                 </div>`;
             }).join(''); lucide.createIcons();
         }
@@ -206,7 +205,8 @@
             const { data: profile } = await sbClient.from('perfil_usuario').select('id').limit(1).maybeSingle();
             if (profile && btn) {
                 await sbClient.from('perfil_usuario').update({ perdas_hoje: 0 }).eq('id', profile.id);
-                btn.style.backgroundColor = '#16a34a'; btn.style.color = 'white';
+                btn.style.setProperty('background-color', '#16a34a', 'important'); 
+                btn.style.color = 'white';
                 setTimeout(() => { btn.style.backgroundColor = ''; btn.style.color = ''; fetchBanca(); }, 300);
             }
         }
@@ -225,14 +225,6 @@
                 const cs = document.getElementById('conn-status'); if(cs) cs.style.backgroundColor = op ? '#4ade80' : '#ef4444';
                 const mst = document.getElementById('market-status-text'); if(mst) mst.innerText = op ? 'OPEN' : 'CLOSED';
             } catch(e) {}
-        }
-
-        function updateFilter(cat) { 
-            currentFilter = cat; 
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
-            const btns = document.querySelectorAll(`.filter-btn[data-cat="${cat}"]`);
-            btns.forEach(b => b.classList.add('active'));
-            fetchLatestSignals(); 
         }
 
         async function init() {
