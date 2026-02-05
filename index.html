@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.95</title>
+    <title>Guardian AI v3.1.96</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -29,7 +29,7 @@
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
-<body>
+<body class="font-black italic">
     <header>
         <div class="bg-blue-600 p-2 rounded-xl"><i data-lucide="zap" class="w-5 h-5 text-white fill-white"></i></div>
         <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
@@ -39,7 +39,6 @@
             </div>
             <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap"><span class="text-[7px] text-blue-400 uppercase">USD</span><span id="usd-price" class="text-[8px] text-white">R$ 0.00</span></div>
             <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap"><span class="text-[7px] text-orange-400 uppercase">BTC</span><span id="btc-price" class="text-[8px] text-white">$ 0.0</span></div>
-            <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap"><span class="text-[7px] text-purple-400 uppercase">ETH</span><span id="eth-price" class="text-[8px] text-white">$ 0.0</span></div>
         </div>
     </header>
 
@@ -47,10 +46,7 @@
         <section id="sec-home" class="content-section active space-y-4">
             <div class="card-inner p-3 flex justify-between items-center border-l-4 border-blue-600 bg-blue-600/5">
                 <div><p class="text-[7px] text-blue-400 uppercase tracking-widest">Sequential SafeGuard</p><p id="safety-status" class="text-[9px] text-white italic">Monitorando Sequence</p></div>
-                <div id="loss-indicator" class="flex gap-2">
-                    <div id="dot-1" class="w-2.5 h-2.5 rounded-full bg-gray-700 transition-colors"></div>
-                    <div id="dot-2" class="w-2.5 h-2.5 rounded-full bg-gray-700 transition-colors"></div>
-                </div>
+                <div class="flex gap-2"><div id="dot-1" class="w-2.5 h-2.5 rounded-full bg-gray-700"></div><div id="dot-2" class="w-2.5 h-2.5 rounded-full bg-gray-700"></div></div>
             </div>
 
             <div class="bg-[#161b22] border border-[#30363d] rounded-[24px] p-5 shadow-2xl relative">
@@ -79,7 +75,22 @@
             </div>
             <div id="signal-container" class="grid grid-cols-1 gap-4"></div>
         </section>
-        </main>
+
+        <section id="sec-wallet" class="content-section space-y-4">
+            <div class="bg-[#161b22] border border-[#30363d] rounded-[24px] p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-[10px] text-blue-500 uppercase">Carteira Consolidada</p>
+                    <button onclick="togglePrivacy()"><i id="privacy-icon-wallet" data-lucide="eye" class="w-4 h-4 text-gray-500"></i></button>
+                </div>
+                <h2 id="wallet-balance" class="text-4xl text-white italic tracking-tighter privacy-toggle mb-6">R$ 0.00</h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="card-inner p-3 flex flex-col"><span class="text-[7px] text-gray-500 uppercase">Bruto</span><span id="w-bruto" class="text-xs privacy-toggle">R$ 0.00</span></div>
+                    <div class="card-inner p-3 flex flex-col border-l-2 border-green-500"><span class="text-[7px] text-green-500 uppercase">Líquido</span><span id="w-liquido" class="text-xs privacy-toggle">R$ 0.00</span></div>
+                </div>
+            </div>
+            <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden italic"><table class="w-full text-[10px] text-left"><tbody id="history-body" class="divide-y divide-white/5"></tbody></table></div>
+        </section>
+    </main>
 
     <nav class="mobile-nav">
         <div id="nav-home" onclick="switchTab('home')" class="nav-item active"><i data-lucide="zap"></i><span>Sinais</span></div>
@@ -90,15 +101,23 @@
         const CONFIG = { url: "https://puwjojeeuvtfzevkvzjd.supabase.co", key: "sb_publishable_o8XZmMMgw5l63TcPRdpmrA_T99K-eDX" };
         let sbClient, currentFilter = 'TUDO', isPrivate = false;
 
+        function togglePrivacy() { isPrivate = !isPrivate; applyPrivacyUI(); }
+        function applyPrivacyUI() { document.querySelectorAll('.privacy-toggle').forEach(el => isPrivate ? el.classList.add('privacy-hidden') : el.classList.remove('privacy-hidden')); }
+
+        function switchTab(id) { 
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(`sec-${id}`).classList.add('active'); 
+            document.getElementById(`nav-${id}`).classList.add('active');
+            lucide.createIcons();
+        }
+
         async function triggerGuardianEngine() {
             const btn = document.getElementById('refresh-btn-main');
             const icon = btn.querySelector('i');
             icon.classList.add('rotate-icon');
             try {
-                const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { 
-                    method: 'POST', 
-                    headers: { 'Authorization': `Bearer ${CONFIG.key}` } 
-                });
+                const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
                 if(response.ok) {
                     icon.setAttribute('data-lucide', 'check'); lucide.createIcons();
                     setTimeout(() => { icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons(); icon.classList.remove('rotate-icon'); }, 1500);
@@ -109,70 +128,55 @@
         async function fetchLatestSignals() {
             const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             const container = document.getElementById('signal-container');
-            
-            // RESTAURAÇÃO DO CARD VAZIO COM BORDA TRACEJADA
             if(!data || data.length === 0) { 
-                container.innerHTML = `
-                    <div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] flex flex-col items-center justify-center">
-                        <p class="text-[9px] text-gray-500 uppercase tracking-widest">Aguardando novos ativos para investir...</p>
-                    </div>`; 
+                container.innerHTML = `<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d]"><p class="text-[9px] text-gray-500 uppercase">Aguardando novos ativos...</p></div>`; 
                 return; 
             }
-            
             const filtered = data.filter(i => {
-                const source = (i.fonte || "").toUpperCase();
-                const asset = (i.ativo || "").toUpperCase();
+                const asset = i.ativo.toUpperCase();
                 if(currentFilter === 'TUDO') return true;
                 if(currentFilter === 'CRIPTO') return asset.includes('BTC') || asset.includes('ETH') || asset.includes('USDT');
-                if(currentFilter === 'USA') return source === 'ENGINE' || asset.includes('$');
-                if(currentFilter === 'B3') return source === 'B3';
+                if(currentFilter === 'USA') return i.fonte === 'ENGINE' || asset.includes('$');
+                if(currentFilter === 'B3') return i.fonte === 'B3';
                 return false;
             });
-
-            if(filtered.length === 0) {
-                container.innerHTML = `<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d]"><p class="text-[9px] text-gray-500 uppercase">Nenhum ativo disponível para este filtro</p></div>`;
-                return;
-            }
-
             container.innerHTML = filtered.map(item => {
                 const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
                 const hasNews = item.motivo_fato_relevante && item.motivo_fato_relevante.length > 20;
                 return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                     <div class="flex justify-between items-start mb-1">
                         <div class="flex flex-col">
-                            <div class="flex items-center gap-2">
-                                <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
-                                <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1">
-                                    <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
-                                    <span class="text-[10px]">9.2%</span>
-                                </div>
-                            </div>
-                            <span class="text-[7px] text-blue-500 font-black uppercase italic tracking-widest">
-                                ${hasNews ? 'CONFLUÊNCIA: GRÁFICO + NOTÍCIA' : 'ANÁLISE: TÉCNICA'}
-                            </span>
+                            <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
+                            <span class="text-[7px] text-blue-500 font-black uppercase italic tracking-widest">${hasNews ? 'CONFLUÊNCIA: GRÁFICO + NOTÍCIA' : 'ANÁLISE: TÉCNICA'}</span>
                         </div>
-                        <span class="text-[9px] text-blue-400 font-black uppercase italic">Score ${item.score_confianca}/10</span>
+                        <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1"><i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i><span class="text-[10px]">9.2%</span></div>
                     </div>
                     <div class="grid grid-cols-3 gap-2 mb-4 mt-2 bg-black/20 p-3 rounded-xl border border-white/5 text-center">
                         <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white">${item.preco_entrada}</span></div>
                         <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400">${item.take_profit}</span></div>
                         <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400">${item.stop_loss}</span></div>
                     </div>
-                    <p class="text-[10px] text-gray-400 leading-tight mb-4 italic">
-                        "${item.motivo_fato_relevante || 'Nenhuma notícia relevante encontrada para este ativo no momento.'}"
-                    </p>
+                    <p class="text-[10px] text-gray-400 leading-tight mb-4 italic">"${item.motivo_fato_relevante || 'Nenhuma notícia relevante encontrada.'}"</p>
                     <div class="flex justify-between items-center pt-3 border-t border-white/5">
-                        <div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase tracking-widest">${item.fonte}</div>
+                        <span class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase tracking-widest">${item.fonte}</span>
                         <button class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full italic">EXECUTAR</button>
                     </div>
                 </div>`;
             }).join(''); lucide.createIcons();
         }
 
+        function updateFilter(cat) { 
+            currentFilter = cat; 
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
+            document.getElementById(`btn-${cat}`).classList.add('active');
+            fetchLatestSignals(); 
+        }
+
         async function init() {
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
-            lucide.createIcons(); await Promise.all([fetchLatestSignals()]);
-            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); }).subscribe();
+            lucide.createIcons(); 
+            await fetchLatestSignals();
+            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => fetchLatestSignals()).subscribe();
         }
         window.onload = init;
     </script>
