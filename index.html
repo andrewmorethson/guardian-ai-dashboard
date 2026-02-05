@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.73</title>
+    <title>Guardian AI v3.1.76</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -73,7 +73,7 @@
                     <button onclick="updateFilter('B3')" id="btn-B3" data-cat="B3" class="filter-btn">B3</button>
                     <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn">Cripto</button>
                 </div>
-                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full flex-shrink-0 transition-all duration-300 shadow-lg shadow-blue-900/20">
+                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full flex-shrink-0 transition-all duration-300">
                     <i data-lucide="refresh-cw" class="w-4 h-4 text-white"></i>
                 </button>
             </div>
@@ -95,7 +95,7 @@
                 </div>
             </div>
 
-            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed">Resetar Trava de Segurança</button>
+            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic transition-all duration-200">Resetar Trava de Segurança</button>
 
             <div class="flex items-center gap-2 px-1">
                 <i data-lucide="history" class="w-3 h-3 text-blue-500"></i>
@@ -147,20 +147,22 @@
         }
 
         async function executeTrade(ativo, btn) {
-            const icon = btn.querySelector('i');
             btn.disabled = true;
             btn.style.setProperty('background-color', '#2563eb', 'important');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = 'ENVIANDO... <i data-lucide="loader-2" class="w-3 h-3 ml-2 animate-spin"></i>';
+            lucide.createIcons();
             try {
-                // Chamada para a Edge Function de Execução Real (Simulada por enquanto)
                 const res = await fetch(`${CONFIG.url}/functions/v1/binance-executor`, { 
                     method: 'POST', 
                     headers: { 'Authorization': `Bearer ${CONFIG.key}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ symbol: ativo.replace("/", ""), side: "BUY", amount: 10 })
                 });
+                if(!res.ok) throw new Error();
                 btn.innerHTML = 'CONCLUÍDO <i data-lucide="check" class="w-3 h-3 ml-2"></i>';
                 lucide.createIcons();
-                setTimeout(() => { btn.disabled = false; btn.style.backgroundColor = ''; btn.innerHTML = 'EXECUTAR'; lucide.createIcons(); }, 2000);
-            } catch (e) { btn.style.backgroundColor = '#dc2626'; btn.innerText = 'ERRO'; }
+                setTimeout(() => { btn.disabled = false; btn.style.backgroundColor = ''; btn.innerHTML = 'EXECUTAR'; lucide.createIcons(); }, 3000);
+            } catch (e) { btn.style.backgroundColor = '#dc2626'; btn.innerText = 'ERRO'; setTimeout(() => { btn.disabled = false; btn.style.backgroundColor = ''; btn.innerHTML = 'EXECUTAR'; lucide.createIcons(); }, 3000); }
         }
 
         async function fetchLatestSignals() {
@@ -173,7 +175,7 @@
                 if(currentFilter === 'B3') return i.fonte?.toUpperCase().includes('B3');
                 return i.fonte?.toUpperCase().includes(currentFilter);
             });
-            if(filtered.length === 0) { container.innerHTML = `<div class="p-10 text-center card-inner border-dashed"><p class="text-xs text-gray-500 uppercase font-black">Sem sinais no momento</p></div>`; return; }
+            if(filtered.length === 0) { container.innerHTML = `<div class="p-10 text-center card-inner border-dashed font-black italic"><p class="text-xs text-gray-500 uppercase">Sem sinais no momento</p></div>`; return; }
             container.innerHTML = filtered.map(item => {
                 const isUp = (parseFloat(item.take_profit) > parseFloat(item.preco_entrada));
                 const pct = (Math.random() * (4.2 - 0.8) + 0.8).toFixed(1);
