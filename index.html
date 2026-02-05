@@ -3,102 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.53</title>
+    <title>Guardian AI v3.1.55</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --radius-core: 24px; --radius-inner: 16px; --bg-main: #0d1117; --bg-card: #161b22; --border-low: #30363d; --accent-primary: #3b82f6; }
-        body { background-color: var(--bg-main) !important; color: #e6edf3; font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 110px; overflow-x: hidden; }
+        body { background-color: var(--bg-main) !important; color: #e6edf3; font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 110px; overflow-x: hidden; font-style: italic; font-weight: 900; }
         header { position: sticky; top: 0; z-index: 50; background-color: var(--bg-main); padding: 12px 16px; border-bottom: 1px solid var(--border-low); display: flex; justify-content: space-between; align-items: center; }
-        main { padding: 16px; }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
-        .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; white-space: nowrap; }
-        .filter-btn.active[data-cat="TUDO"] { background: #3b82f6; border-color: #3b82f6; color: white; }
-        .filter-btn.active[data-cat="USA"] { background: #ef4444; border-color: #ef4444; color: white; }
-        .filter-btn.active[data-cat="B3"] { background: #22c55e; border-color: #22c55e; color: white; }
-        .filter-btn.active[data-cat="CRIPTO"] { background: #f59e0b; border-color: #f59e0b; color: white; }
+        .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
+        .filter-btn.active { background: #3b82f6; border-color: #3b82f6; color: white; }
         .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid var(--border-low); z-index: 100; display: flex; justify-content: space-around; padding: 15px 0; padding-bottom: env(safe-area-inset-bottom); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 9px; color: #8b949e; cursor: pointer; font-weight: 900; font-style: italic; text-transform: uppercase; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 9px; color: #8b949e; cursor: pointer; text-transform: uppercase; }
         .nav-item.active { color: var(--accent-primary); }
         .content-section { display: none; }
         .content-section.active { display: block; }
         .privacy-hidden { background-color: #30363d !important; color: transparent !important; border-radius: 4px; pointer-events: none; }
-        ::-webkit-scrollbar { width: 0px; }
         .rotate-icon { animation: rotate 1s linear infinite; }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="font-black italic">
+<body>
     <header>
         <div class="bg-blue-600 p-2 rounded-xl"><i data-lucide="zap" class="w-5 h-5 text-white fill-white"></i></div>
-        <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
-            <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap">
-                <div id="conn-status" class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
-                <span id="market-status-text" class="text-[7px] text-gray-400 uppercase tracking-tighter">OFF</span>
-            </div>
-            <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap"><span class="text-[7px] text-blue-400 uppercase">USD</span><span id="usd-price" class="text-[8px] text-white">R$ 0.00</span></div>
-            <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap"><span class="text-[7px] text-orange-400 uppercase">BTC</span><span id="btc-price" class="text-[8px] text-white">$ 0.0</span></div>
+        <div class="flex gap-2 overflow-x-auto py-1">
+            <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d]"><div id="conn-status" class="w-1.5 h-1.5 rounded-full bg-red-500"></div><span id="market-text" class="text-[7px] text-gray-400 uppercase">OFF</span></div>
+            <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d]"><span class="text-[7px] text-blue-400 uppercase">USD</span><span id="usd-price" class="text-[8px] text-white">R$ 0.00</span></div>
+            <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d]"><span class="text-[7px] text-orange-400 uppercase">BTC</span><span id="btc-price" class="text-[8px] text-white">$ 0.0</span></div>
         </div>
     </header>
 
-    <main>
+    <main class="p-4">
         <section id="sec-home" class="content-section active space-y-4">
-            <div class="card-inner p-3 flex justify-between items-center border-l-4 border-blue-600 bg-blue-600/5">
-                <div><p class="text-[7px] text-blue-400 uppercase">Sequential SafeGuard</p><p id="safety-status" class="text-[9px] text-white">Monitorando Sequence</p></div>
-                <div id="loss-indicator" class="flex gap-2">
-                    <div id="dot-1" class="w-2.5 h-2.5 rounded-full bg-gray-700"></div>
-                    <div id="dot-2" class="w-2.5 h-2.5 rounded-full bg-gray-700"></div>
-                </div>
+            <div class="card-inner p-3 flex justify-between items-center border-l-4 border-blue-600">
+                <div><p class="text-[7px] text-blue-400 uppercase">SafeGuard</p><p id="safety-text" class="text-[9px] text-white">Monitorando...</p></div>
+                <div class="flex gap-2"><div id="dot-1" class="w-2 h-2 rounded-full bg-gray-700"></div><div id="dot-2" class="w-2 h-2 rounded-full bg-gray-700"></div></div>
             </div>
-
             <div class="bg-[#161b22] border border-[#30363d] rounded-[24px] p-5 shadow-2xl relative">
-                <div class="flex justify-between items-center mb-1">
-                    <p class="text-[9px] uppercase text-blue-500 font-black">Patrimônio Principal</p>
-                    <button onclick="togglePrivacy()"><i id="privacy-icon-home" data-lucide="eye" class="w-4 h-4 text-gray-500"></i></button>
-                </div>
+                <div class="flex justify-between items-center mb-1"><p class="text-[9px] uppercase text-blue-500 font-black tracking-widest">Patrimônio Principal</p><button onclick="togglePrivacy()"><i id="priv-icon-home" data-lucide="eye" class="w-4 h-4 text-gray-500"></i></button></div>
                 <h2 id="home-balance" class="text-4xl font-black text-white italic tracking-tighter privacy-toggle">R$ 0.00</h2>
                 <div class="flex gap-4 mt-3 pt-3 border-t border-white/5">
-                    <div><p class="text-[7px] text-gray-500 uppercase">Op.</p><p id="count-in" class="text-xs text-white">0</p></div>
-                    <div><p class="text-[7px] text-green-500 uppercase">W</p><p id="count-win" class="text-xs text-green-400">0</p></div>
-                    <div><p class="text-[7px] text-red-500 uppercase">L</p><p id="count-loss" class="text-xs text-red-400">0</p></div>
+                    <div><p class="text-[7px] text-gray-500 uppercase">W</p><p id="cnt-win" class="text-xs text-green-400">0</p></div>
+                    <div><p class="text-[7px] text-gray-500 uppercase">L</p><p id="cnt-loss" class="text-xs text-red-400">0</p></div>
                 </div>
             </div>
-
-            <div class="flex items-center justify-between gap-2 py-1">
-                <div class="flex gap-2 overflow-x-auto no-scrollbar">
-                    <button onclick="updateFilter('TUDO')" id="btn-TUDO" data-cat="TUDO" class="filter-btn active">Tudo</button>
-                    <button onclick="updateFilter('USA')" id="btn-USA" data-cat="USA" class="filter-btn">USA</button>
-                    <button onclick="updateFilter('B3')" id="btn-B3" data-cat="B3" class="filter-btn">B3</button>
-                    <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn">Cripto</button>
-                </div>
-                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full flex-shrink-0 transition-all duration-300">
-                    <i data-lucide="refresh-cw" class="w-4 h-4 text-white"></i>
-                </button>
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex gap-2 overflow-x-auto"><button onclick="updateFilter('TUDO')" id="btn-TUDO" class="filter-btn active">Tudo</button><button onclick="updateFilter('USA')" id="btn-USA" class="filter-btn">USA</button></div>
+                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full transition-all duration-300"><i data-lucide="refresh-cw" class="w-4 h-4 text-white"></i></button>
             </div>
-            <div id="signal-container" class="grid grid-cols-1 gap-4"></div>
+            <div id="signal-container" class="space-y-4"></div>
         </section>
 
         <section id="sec-wallet" class="content-section space-y-4">
             <div class="bg-[#161b22] border border-[#30363d] rounded-[24px] p-5">
-                <div class="flex justify-between items-center mb-4">
-                    <p class="text-[10px] text-blue-500 uppercase font-black">Carteira Consolidada</p>
-                    <button onclick="togglePrivacy()"><i id="privacy-icon-wallet" data-lucide="eye" class="w-4 h-4 text-gray-500"></i></button>
-                </div>
+                <div class="flex justify-between items-center mb-4"><p class="text-[10px] text-blue-500 uppercase font-black">Consolidado</p><button onclick="togglePrivacy()"><i id="priv-icon-wallet" data-lucide="eye" class="w-4 h-4 text-gray-500"></i></button></div>
                 <h2 id="wallet-balance" class="text-4xl font-black text-white italic tracking-tighter privacy-toggle mb-6">R$ 0.00</h2>
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="card-inner p-3 flex flex-col"><span class="text-[7px] text-gray-500 uppercase">Bruto</span><span id="w-bruto" class="text-xs font-black privacy-toggle">R$ 0.00</span></div>
-                    <div class="card-inner p-3 flex flex-col border-l-2 border-green-500"><span class="text-[7px] text-green-500 uppercase">Líquido</span><span id="w-liquido" class="text-xs font-black privacy-toggle">R$ 0.00</span></div>
-                    <div class="card-inner p-3 flex flex-col border-l-2 border-yellow-500"><span class="text-[7px] text-yellow-500 uppercase">Reinvestir</span><span id="w-reinvest" class="text-xs font-black privacy-toggle">R$ 0.00</span></div>
-                    <div class="card-inner p-3 flex flex-col border-l-2 border-purple-500"><span class="text-[7px] text-purple-500 uppercase">Reserva</span><span id="w-reserve" class="text-xs font-black privacy-toggle">R$ 0.00</span></div>
+                    <div class="card-inner p-3 flex flex-col"><span class="text-[7px] text-gray-500 uppercase font-black tracking-widest">Líquido</span><span id="w-liquido" class="text-xs font-black privacy-toggle">R$ 0.00</span></div>
+                    <div class="card-inner p-3 flex flex-col border-l-2 border-purple-500"><span class="text-[7px] text-purple-500 uppercase font-black tracking-widest">Reserva</span><span id="w-reserve" class="text-xs font-black privacy-toggle">R$ 0.00</span></div>
                 </div>
             </div>
             <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden italic font-black">
-                <table class="w-full text-[10px] text-left italic">
-                    <tbody id="history-body" class="divide-y divide-white/5 italic"></tbody>
-                </table>
+                <table class="w-full text-[10px] text-left"><tbody id="history-body" class="divide-y divide-white/5"></tbody></table>
             </div>
-            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic transition-colors duration-200">Resetar Trava de Segurança</button>
+            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black transition-colors duration-200">Resetar Trava de Segurança</button>
         </section>
     </main>
 
@@ -114,8 +83,7 @@
         function togglePrivacy() { isPrivate = !isPrivate; localStorage.setItem('guardian_privacy', isPrivate); applyPrivacyUI(); }
         function applyPrivacyUI() { 
             document.querySelectorAll('.privacy-toggle').forEach(el => isPrivate ? el.classList.add('privacy-hidden') : el.classList.remove('privacy-hidden'));
-            const icons = ['privacy-icon-home', 'privacy-icon-wallet'];
-            icons.forEach(id => { const el = document.getElementById(id); if(el) { el.setAttribute('data-lucide', isPrivate ? 'eye-off' : 'eye'); lucide.createIcons(); } });
+            ['priv-icon-home', 'priv-icon-wallet'].forEach(id => { const el = document.getElementById(id); if(el) { el.setAttribute('data-lucide', isPrivate ? 'eye-off' : 'eye'); lucide.createIcons(); } });
         }
         function switchTab(id, el) { 
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
@@ -126,67 +94,47 @@
 
         async function triggerGuardianEngine() {
             const btn = document.getElementById('refresh-btn-main'); if(!btn) return;
-            const icon = btn.querySelector('i'); if(icon) icon.classList.add('rotate-icon');
+            const icon = btn.querySelector('i'); icon.classList.add('rotate-icon');
             btn.style.backgroundColor = '#60a5fa'; 
             try {
                 await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
                 await fetchLatestSignals();
-                btn.style.backgroundColor = '#16a34a'; 
-                setTimeout(() => { btn.style.backgroundColor = ''; }, 300);
+                btn.style.backgroundColor = '#16a34a'; setTimeout(() => { btn.style.backgroundColor = ''; }, 300);
             } catch(e) { btn.style.backgroundColor = '#dc2626'; setTimeout(() => btn.style.backgroundColor = '', 1000); }
-            finally { if(icon) icon.classList.remove('rotate-icon'); }
+            finally { icon.classList.remove('rotate-icon'); }
         }
 
         async function fetchLatestSignals() {
             const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             const container = document.getElementById('signal-container'); if(!data || !container) return;
-            const filtered = data.filter(i => currentFilter === 'TUDO' || i.ativo.includes('BTC') || i.ativo.includes('ETH') || i.fonte?.toUpperCase().includes(currentFilter));
-            if(filtered.length === 0) { container.innerHTML = `<div class="p-10 text-center card-inner border-dashed"><p class="text-xs text-gray-500 uppercase font-black">Sem notícias no momento</p></div>`; return; }
-            container.innerHTML = filtered.map(item => {
-                const isUp = (parseFloat(item.take_profit) > parseFloat(item.preco_entrada));
-                return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px] mb-4">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="flex items-center gap-2"><span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span><div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic"><i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i></div></div>
-                        <span class="text-[9px] text-blue-400 font-black tracking-widest uppercase italic">Score ${item.score_confianca}/10</span>
-                    </div>
-                    <div class="grid grid-cols-3 gap-2 mb-4 bg-black/20 p-3 rounded-xl border border-white/5 font-black italic">
-                        <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white tracking-tighter">${item.preco_entrada || '---'}</span></div>
-                        <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 tracking-tighter">${item.take_profit || '---'}</span></div>
-                        <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 tracking-tighter">${item.stop_loss || '---'}</span></div>
-                    </div>
-                    <p class="text-[10px] text-gray-400 leading-tight mb-4">"${item.motivo_fato_relevante}"</p>
-                    <div class="flex justify-between items-center pt-3 border-t border-white/5"><div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte || 'Guardian AI'}</div><button onclick="alert('Executando')" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic">Executar</button></div>
-                </div>`;
-            }).join(''); lucide.createIcons();
+            container.innerHTML = data.map(item => `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
+                <div class="flex justify-between items-start mb-3"><span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span><span class="text-[9px] text-blue-400 font-black uppercase italic">Score ${item.score_confianca}/10</span></div>
+                <p class="text-[10px] text-gray-400 mb-4">"${item.motivo_fato_relevante}"</p>
+                <div class="flex justify-between items-center pt-3 border-t border-white/5"><div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase">${item.fonte || 'Guardian AI'}</div><button class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase">Executar</button></div>
+            </div>`).join(''); lucide.createIcons();
         }
 
         async function fetchBanca() {
-            // CORREÇÃO:perfil_usuario COM UNDERLINE
             const { data } = await sbClient.from('perfil_usuario').select('*').limit(1).maybeSingle();
             if(data) {
                 const s = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
                 const hb = document.getElementById('home-balance'); if(hb) hb.innerText = s;
                 const wb = document.getElementById('wallet-balance'); if(wb) wb.innerText = s;
-                const br = document.getElementById('w-bruto'); if(br) br.innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
                 const li = document.getElementById('w-liquido'); if(li) li.innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
-                const rv = document.getElementById('w-reinvest'); if(rv) rv.innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
                 const rs = document.getElementById('w-reserve'); if(rs) rs.innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
+                const st = document.getElementById('safety-text'); if(st) st.innerText = `Proteção: ${data.perdas_hoje}/10 Ativo`;
             }
         }
 
         async function fetchHistoryTable() {
-            const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false });
+            const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
             const body = document.getElementById('history-body'); if(!data || !body) return;
-            const cw = document.getElementById('count-win'); if(cw) cw.innerText = data.filter(o => o.resultado === 'WIN').length;
-            const cl = document.getElementById('count-loss'); if(cl) cl.innerText = data.filter(o => o.resultado === 'LOSS').length;
-            const ci = document.getElementById('count-in'); if(ci) ci.innerText = data.length;
-            
             const lastTwo = data.slice(0, 2); const d1 = document.getElementById('dot-1'); const d2 = document.getElementById('dot-2');
             if(d1 && d2) {
                 d1.style.backgroundColor = '#374151'; d2.style.backgroundColor = '#374151';
                 if (lastTwo.length > 0 && lastTwo[0].resultado === 'LOSS') { d1.style.backgroundColor = '#dc2626'; if (lastTwo.length > 1 && lastTwo[1].resultado === 'LOSS') d2.style.backgroundColor = '#dc2626'; }
             }
-            body.innerHTML = data.slice(0, 10).map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
+            body.innerHTML = data.map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
         }
 
         async function manualResetLosses() {
@@ -206,11 +154,9 @@
                 const bp = document.getElementById('btc-price'); if(bp) bp.innerText = `$ ${Number(b.price).toFixed(0)}`;
                 const h = new Date().getHours(); const op = h >= 9 && h < 18;
                 const cs = document.getElementById('conn-status'); if(cs) cs.style.backgroundColor = op ? '#4ade80' : '#ef4444';
-                const mst = document.getElementById('market-status-text'); if(mst) mst.innerText = op ? 'OPEN' : 'CLOSED';
+                const mt = document.getElementById('market-text'); if(mt) mt.innerText = op ? 'OPEN' : 'CLOSED';
             } catch(e) {}
         }
-
-        function updateFilter(cat) { currentFilter = cat; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); const btn = document.getElementById(`btn-${cat}`); if(btn) btn.classList.add('active'); fetchLatestSignals(); }
 
         async function init() {
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
