@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.91</title>
+    <title>Guardian AI v3.1.92</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -149,7 +149,7 @@
         async function fetchLatestSignals() {
             const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             const container = document.getElementById('signal-container');
-            if(!data || data.length === 0) { container.innerHTML = '<p class="text-center text-xs text-gray-500 py-10">AGUARDANDO SINAIS...</p>'; return; }
+            if(!data || data.length === 0) { container.innerHTML = ''; return; }
             
             const filtered = data.filter(i => {
                 if(currentFilter === 'TUDO') return true;
@@ -161,23 +161,29 @@
 
             container.innerHTML = filtered.map(item => {
                 const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
+                const hasNews = item.motivo_fato_relevante && item.motivo_fato_relevante.length > 20;
                 return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="flex items-center gap-2">
-                            <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
-                            <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1">
-                                <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
-                                <span class="text-[10px]">9.2%</span>
+                    <div class="flex justify-between items-start mb-1">
+                        <div class="flex flex-col">
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
+                                <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1">
+                                    <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
+                                    <span class="text-[10px]">9.2%</span>
+                                </div>
                             </div>
+                            <span class="text-[7px] text-blue-500 font-black uppercase italic tracking-widest">
+                                ${hasNews ? 'CONFLUÊNCIA: GRÁFICO + NOTÍCIA' : 'ANÁLISE: TÉCNICA'}
+                            </span>
                         </div>
                         <span class="text-[9px] text-blue-400 font-black tracking-widest uppercase italic">Score ${item.score_confianca}/10</span>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 mb-4 bg-black/20 p-3 rounded-xl border border-white/5 text-center">
+                    <div class="grid grid-cols-3 gap-2 mb-4 mt-2 bg-black/20 p-3 rounded-xl border border-white/5 text-center">
                         <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white font-black">${item.preco_entrada}</span></div>
                         <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 font-black">${item.take_profit}</span></div>
                         <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 font-black">${item.stop_loss}</span></div>
                     </div>
-                    <p class="text-[10px] text-gray-400 leading-tight mb-4">"${item.motivo_fato_relevante}"</p>
+                    <p class="text-[10px] text-gray-400 leading-tight mb-4">"${item.motivo_fato_relevante || 'Aguardando confirmação de fluxo...'}"</p>
                     <div class="flex justify-between items-center pt-3 border-t border-white/5">
                         <div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte}</div>
                         <button class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic">EXECUTAR</button>
