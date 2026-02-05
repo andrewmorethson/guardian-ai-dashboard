@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.69</title>
+    <title>Guardian AI v3.1.70</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -133,14 +133,23 @@
         }
 
         async function triggerGuardianEngine() {
-            // FIX DEFINITIVO PARA O BOTÃO
             const btn = document.getElementById('refresh-btn-main'); if(!btn) return;
             const icon = btn.querySelector('i'); if(icon) icon.classList.add('rotate-icon');
-            btn.style.setProperty('background-color', '#16a34a', 'important'); 
+            
             try {
                 await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
                 await fetchLatestSignals();
-                setTimeout(() => { btn.style.backgroundColor = ''; }, 300);
+                
+                // UX: CHECK VERDE AO SUCESSO
+                btn.style.setProperty('background-color', '#16a34a', 'important'); 
+                if(icon) icon.setAttribute('data-lucide', 'check');
+                lucide.createIcons();
+                
+                setTimeout(() => { 
+                    btn.style.backgroundColor = ''; 
+                    if(icon) icon.setAttribute('data-lucide', 'refresh-cw');
+                    lucide.createIcons();
+                }, 800);
             } catch(e) { btn.style.backgroundColor = '#dc2626'; setTimeout(() => btn.style.backgroundColor = '', 1000); }
             finally { if(icon) icon.classList.remove('rotate-icon'); }
         }
@@ -225,6 +234,14 @@
                 const cs = document.getElementById('conn-status'); if(cs) cs.style.backgroundColor = op ? '#4ade80' : '#ef4444';
                 const mst = document.getElementById('market-status-text'); if(mst) mst.innerText = op ? 'OPEN' : 'CLOSED';
             } catch(e) {}
+        }
+
+        function updateFilter(cat) { 
+            currentFilter = cat; 
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
+            const btns = document.querySelectorAll(`.filter-btn[data-cat="${cat}"]`);
+            btns.forEach(b => b.classList.add('active'));
+            fetchLatestSignals(); 
         }
 
         async function init() {
