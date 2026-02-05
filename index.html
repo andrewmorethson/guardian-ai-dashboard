@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.67</title>
+    <title>Guardian AI v3.1.68</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -135,6 +135,7 @@
         async function triggerGuardianEngine() {
             const btn = document.getElementById('refresh-btn-main'); if(!btn) return;
             const icon = btn.querySelector('i'); if(icon) icon.classList.add('rotate-icon');
+            // FORÇA COR VERDE IMEDIATA AO CLIQUE
             btn.style.setProperty('background-color', '#16a34a', 'important'); 
             try {
                 await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
@@ -147,6 +148,7 @@
         async function fetchLatestSignals() {
             const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             const container = document.getElementById('signal-container'); if(!data || !container) return;
+            // FILTRO CORRIGIDO
             const filtered = data.filter(i => {
                 if(currentFilter === 'TUDO') return true;
                 if(currentFilter === 'CRIPTO') return i.ativo.toUpperCase().includes('BTC') || i.ativo.toUpperCase().includes('ETH');
@@ -183,8 +185,6 @@
                 document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
                 document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
                 document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
-                
-                // LÓGICA DA TRAVA
                 const btn = document.getElementById('reset-safety-btn');
                 if(btn) btn.disabled = (data.perdas_hoje < 2);
             }
@@ -194,7 +194,6 @@
             const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
             const body = document.getElementById('history-body'); if(!data || !body) return;
             body.innerHTML = data.map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
-            
             const lastTwo = data.slice(0, 2); const d1 = document.getElementById('dot-1'); const d2 = document.getElementById('dot-2');
             if(d1 && d2) {
                 d1.style.backgroundColor = (lastTwo[0]?.resultado === 'LOSS') ? '#dc2626' : '#374151';
@@ -226,6 +225,14 @@
                 const cs = document.getElementById('conn-status'); if(cs) cs.style.backgroundColor = op ? '#4ade80' : '#ef4444';
                 const mst = document.getElementById('market-status-text'); if(mst) mst.innerText = op ? 'OPEN' : 'CLOSED';
             } catch(e) {}
+        }
+
+        function updateFilter(cat) { 
+            currentFilter = cat; 
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
+            const btns = document.querySelectorAll(`.filter-btn[data-cat="${cat}"]`);
+            btns.forEach(b => b.classList.add('active'));
+            fetchLatestSignals(); 
         }
 
         async function init() {
