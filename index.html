@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.72</title>
+    <title>Guardian AI v3.1.73</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -46,7 +46,7 @@
     <main>
         <section id="sec-home" class="content-section active space-y-4">
             <div class="card-inner p-3 flex justify-between items-center border-l-4 border-blue-600 bg-blue-600/5">
-                <div><p class="text-[7px] text-blue-400 uppercase">Sequential SafeGuard</p><p id="safety-status" class="text-[9px] text-white italic">Monitorando Sequence</p></div>
+                <div><p class="text-[7px] text-blue-400 uppercase tracking-widest font-black">Sequential SafeGuard</p><p id="safety-status" class="text-[9px] text-white italic">Monitorando Sequence</p></div>
                 <div id="loss-indicator" class="flex gap-2">
                     <div id="dot-1" class="w-2.5 h-2.5 rounded-full bg-gray-700 transition-colors"></div>
                     <div id="dot-2" class="w-2.5 h-2.5 rounded-full bg-gray-700 transition-colors"></div>
@@ -73,7 +73,7 @@
                     <button onclick="updateFilter('B3')" id="btn-B3" data-cat="B3" class="filter-btn">B3</button>
                     <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn">Cripto</button>
                 </div>
-                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full flex-shrink-0 transition-all duration-300">
+                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full flex-shrink-0 transition-all duration-300 shadow-lg shadow-blue-900/20">
                     <i data-lucide="refresh-cw" class="w-4 h-4 text-white"></i>
                 </button>
             </div>
@@ -95,11 +95,11 @@
                 </div>
             </div>
 
-            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed">Resetar Trava de Segurança</button>
+            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed">Resetar Trava de Segurança</button>
 
             <div class="flex items-center gap-2 px-1">
                 <i data-lucide="history" class="w-3 h-3 text-blue-500"></i>
-                <p class="text-[9px] uppercase font-black text-gray-400 tracking-widest italic">Histórico de Transações</p>
+                <p class="text-[9px] uppercase font-black text-gray-400 tracking-widest italic tracking-tighter">Histórico de Transações</p>
             </div>
 
             <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden italic font-black">
@@ -135,23 +135,32 @@
         async function triggerGuardianEngine() {
             const btn = document.getElementById('refresh-btn-main'); if(!btn) return;
             const icon = btn.querySelector('i'); if(icon) icon.classList.add('rotate-icon');
-            
             try {
                 await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
                 await fetchLatestSignals();
-                
-                // UX: CHECK AZUL ROYAL AO SUCESSO
                 btn.style.setProperty('background-color', '#2563eb', 'important'); 
                 if(icon) icon.setAttribute('data-lucide', 'check');
                 lucide.createIcons();
-                
-                setTimeout(() => { 
-                    btn.style.backgroundColor = ''; 
-                    if(icon) icon.setAttribute('data-lucide', 'refresh-cw');
-                    lucide.createIcons();
-                }, 1000); 
+                setTimeout(() => { btn.style.backgroundColor = ''; if(icon) icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons(); }, 1000); 
             } catch(e) { btn.style.backgroundColor = '#dc2626'; setTimeout(() => btn.style.backgroundColor = '', 1000); }
             finally { if(icon) icon.classList.remove('rotate-icon'); }
+        }
+
+        async function executeTrade(ativo, btn) {
+            const icon = btn.querySelector('i');
+            btn.disabled = true;
+            btn.style.setProperty('background-color', '#2563eb', 'important');
+            try {
+                // Chamada para a Edge Function de Execução Real (Simulada por enquanto)
+                const res = await fetch(`${CONFIG.url}/functions/v1/binance-executor`, { 
+                    method: 'POST', 
+                    headers: { 'Authorization': `Bearer ${CONFIG.key}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol: ativo.replace("/", ""), side: "BUY", amount: 10 })
+                });
+                btn.innerHTML = 'CONCLUÍDO <i data-lucide="check" class="w-3 h-3 ml-2"></i>';
+                lucide.createIcons();
+                setTimeout(() => { btn.disabled = false; btn.style.backgroundColor = ''; btn.innerHTML = 'EXECUTAR'; lucide.createIcons(); }, 2000);
+            } catch (e) { btn.style.backgroundColor = '#dc2626'; btn.innerText = 'ERRO'; }
         }
 
         async function fetchLatestSignals() {
@@ -167,7 +176,7 @@
             if(filtered.length === 0) { container.innerHTML = `<div class="p-10 text-center card-inner border-dashed"><p class="text-xs text-gray-500 uppercase font-black">Sem sinais no momento</p></div>`; return; }
             container.innerHTML = filtered.map(item => {
                 const isUp = (parseFloat(item.take_profit) > parseFloat(item.preco_entrada));
-                const pct = (Math.random() * (4.2 - 0.8) + 0.8).toFixed(1); // RESTAURAÇÃO DA %
+                const pct = (Math.random() * (4.2 - 0.8) + 0.8).toFixed(1);
                 return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                     <div class="flex justify-between items-start mb-3">
                         <div class="flex items-center gap-2">
@@ -185,7 +194,10 @@
                         <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 tracking-tighter">${item.stop_loss || '---'}</span></div>
                     </div>
                     <p class="text-[10px] text-gray-400 leading-tight mb-4">"${item.motivo_fato_relevante}"</p>
-                    <div class="flex justify-between items-center pt-3 border-t border-white/5"><div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte || 'Guardian AI'}</div><button onclick="alert('Executando')" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic">Executar</button></div>
+                    <div class="flex justify-between items-center pt-3 border-t border-white/5">
+                        <div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte || 'Guardian AI'}</div>
+                        <button onclick="executeTrade('${item.ativo}', this)" class="bg-blue-600 text-white text-[9px] px-6 py-2 rounded-full uppercase font-black italic flex items-center transition-all duration-300">EXECUTAR</button>
+                    </div>
                 </div>`;
             }).join(''); lucide.createIcons();
         }
@@ -241,14 +253,6 @@
                 const cs = document.getElementById('conn-status'); if(cs) cs.style.backgroundColor = op ? '#4ade80' : '#ef4444';
                 const mst = document.getElementById('market-status-text'); if(mst) mst.innerText = op ? 'OPEN' : 'CLOSED';
             } catch(e) {}
-        }
-
-        function updateFilter(cat) { 
-            currentFilter = cat; 
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
-            const btns = document.querySelectorAll(`.filter-btn[data-cat="${cat}"]`);
-            btns.forEach(b => b.classList.add('active'));
-            fetchLatestSignals(); 
         }
 
         async function init() {
