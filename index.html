@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.89</title>
+    <title>Guardian AI v3.1.91</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --radius-core: 24px; --radius-inner: 16px; --bg-main: #0d1117; --bg-card: #161b22; --border-low: #30363d; --accent-primary: #3b82f6; }
+        :root { --radius-core: 24px; --radius-inner: 16px; --bg-main: #0d1117; --bg-card: #161b22; --border-low: #30363d; --accent-primary: #2563eb; }
         body { background-color: var(--bg-main) !important; color: #e6edf3; font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 110px; overflow-x: hidden; }
         header { position: sticky; top: 0; z-index: 50; background-color: var(--bg-main); padding: 12px 16px; border-bottom: 1px solid var(--border-low); display: flex; justify-content: space-between; align-items: center; }
         main { padding: 16px; }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
         .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; white-space: nowrap; }
-        .filter-btn.active[data-cat="TUDO"] { background: #3b82f6; border-color: #3b82f6; color: white; }
+        .filter-btn.active[data-cat="TUDO"] { background: #2563eb; border-color: #2563eb; color: white; }
         .filter-btn.active[data-cat="USA"] { background: #ef4444; border-color: #ef4444; color: white; }
         .filter-btn.active[data-cat="B3"] { background: #22c55e; border-color: #22c55e; color: white; }
         .filter-btn.active[data-cat="CRIPTO"] { background: #f59e0b; border-color: #f59e0b; color: white; }
@@ -73,7 +73,7 @@
                     <button onclick="updateFilter('B3')" id="btn-B3" data-cat="B3" class="filter-btn">B3</button>
                     <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" data-cat="CRIPTO" class="filter-btn">Cripto</button>
                 </div>
-                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-blue-600 p-2 rounded-full flex-shrink-0 transition-all duration-300 shadow-lg shadow-blue-900/20">
+                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-[#2563eb] p-2 rounded-full flex-shrink-0 transition-all duration-300">
                     <i data-lucide="refresh-cw" class="w-4 h-4 text-white"></i>
                 </button>
             </div>
@@ -95,16 +95,16 @@
                 </div>
             </div>
 
-            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic transition-all duration-300">Resetar Trava de Segurança</button>
+            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic">Resetar Trava de Segurança</button>
 
             <div class="flex items-center gap-2 px-1">
                 <i data-lucide="history" class="w-3 h-3 text-blue-500"></i>
-                <p class="text-[9px] uppercase font-black text-gray-400 tracking-widest italic tracking-tighter">Histórico de Transações</p>
+                <p class="text-[9px] uppercase font-black text-gray-400 tracking-widest italic">Histórico de Transações</p>
             </div>
 
-            <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden italic font-black">
-                <table class="w-full text-[10px] text-left italic">
-                    <tbody id="history-body" class="divide-y divide-white/5 italic"></tbody>
+            <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden">
+                <table class="w-full text-[10px] text-left">
+                    <tbody id="history-body" class="divide-y divide-white/5"></tbody>
                 </table>
             </div>
         </section>
@@ -119,7 +119,7 @@
         const CONFIG = { url: "https://puwjojeeuvtfzevkvzjd.supabase.co", key: "sb_publishable_o8XZmMMgw5l63TcPRdpmrA_T99K-eDX" };
         let sbClient, currentFilter = 'TUDO', isPrivate = false;
 
-        function togglePrivacy() { isPrivate = !isPrivate; localStorage.setItem('guardian_privacy', isPrivate); applyPrivacyUI(); }
+        function togglePrivacy() { isPrivate = !isPrivate; applyPrivacyUI(); }
         function applyPrivacyUI() { 
             document.querySelectorAll('.privacy-toggle').forEach(el => isPrivate ? el.classList.add('privacy-hidden') : el.classList.remove('privacy-hidden'));
             ['privacy-icon-home', 'privacy-icon-wallet'].forEach(id => { const el = document.getElementById(id); if(el) { el.setAttribute('data-lucide', isPrivate ? 'eye-off' : 'eye'); lucide.createIcons(); } });
@@ -128,9 +128,97 @@
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             document.getElementById(`sec-${id}`).classList.add('active'); document.getElementById(`nav-${id}`).classList.add('active');
-            localStorage.setItem('guardian_active_tab', id);
             lucide.createIcons(); if(id === 'wallet') fetchHistoryTable(); applyPrivacyUI();
         }
 
         async function triggerGuardianEngine() {
-            const btn = document.getElementById('refresh-btn-main'); if(!btn) return;
+            const btn = document.getElementById('refresh-btn-main');
+            const icon = btn.querySelector('i');
+            icon.classList.add('rotate-icon');
+            try {
+                const res = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
+                const data = await res.json();
+                if(data.status === "success") {
+                    icon.setAttribute('data-lucide', 'check');
+                    lucide.createIcons();
+                    setTimeout(() => { icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons(); icon.classList.remove('rotate-icon'); }, 1500);
+                }
+            } catch(e) { icon.classList.remove('rotate-icon'); }
+        }
+
+        async function fetchLatestSignals() {
+            const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
+            const container = document.getElementById('signal-container');
+            if(!data || data.length === 0) { container.innerHTML = '<p class="text-center text-xs text-gray-500 py-10">AGUARDANDO SINAIS...</p>'; return; }
+            
+            const filtered = data.filter(i => {
+                if(currentFilter === 'TUDO') return true;
+                if(currentFilter === 'CRIPTO') return i.ativo.includes('BTC') || i.ativo.includes('ETH');
+                if(currentFilter === 'USA') return i.fonte === 'ENGINE' || i.ativo.includes('$');
+                if(currentFilter === 'B3') return i.fonte === 'B3';
+                return false;
+            });
+
+            container.innerHTML = filtered.map(item => {
+                const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
+                return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
+                            <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1">
+                                <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
+                                <span class="text-[10px]">9.2%</span>
+                            </div>
+                        </div>
+                        <span class="text-[9px] text-blue-400 font-black tracking-widest uppercase italic">Score ${item.score_confianca}/10</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 mb-4 bg-black/20 p-3 rounded-xl border border-white/5 text-center">
+                        <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white font-black">${item.preco_entrada}</span></div>
+                        <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 font-black">${item.take_profit}</span></div>
+                        <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 font-black">${item.stop_loss}</span></div>
+                    </div>
+                    <p class="text-[10px] text-gray-400 leading-tight mb-4">"${item.motivo_fato_relevante}"</p>
+                    <div class="flex justify-between items-center pt-3 border-t border-white/5">
+                        <div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte}</div>
+                        <button class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic">EXECUTAR</button>
+                    </div>
+                </div>`;
+            }).join(''); lucide.createIcons();
+        }
+
+        async function fetchBanca() {
+            const { data } = await sbClient.from('perfil_usuario').select('*').limit(1).maybeSingle();
+            if(data) {
+                const s = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
+                document.getElementById('home-balance').innerText = s;
+                document.getElementById('wallet-balance').innerText = s;
+                document.getElementById('w-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
+                document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
+                document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
+                document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
+            }
+        }
+
+        async function fetchHistoryTable() {
+            const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
+            const body = document.getElementById('history-body');
+            if(!data || !body) return;
+            body.innerHTML = data.map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
+        }
+
+        function updateFilter(cat) { 
+            currentFilter = cat; 
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
+            document.querySelector(`.filter-btn[data-cat="${cat}"]`).classList.add('active');
+            fetchLatestSignals(); 
+        }
+
+        async function init() {
+            sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
+            lucide.createIcons(); await Promise.all([fetchBanca(), fetchLatestSignals()]);
+            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchBanca(); fetchLatestSignals(); }).subscribe();
+        }
+        window.onload = init;
+    </script>
+</body>
+</html>
