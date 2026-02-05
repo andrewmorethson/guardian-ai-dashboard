@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v3.1.92</title>
+    <title>Guardian AI v3.1.94</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -94,19 +94,9 @@
                     <div class="card-inner p-3 flex flex-col border-l-2 border-purple-500"><span class="text-[7px] text-purple-500 uppercase">Reserva</span><span id="w-reserve" class="text-xs font-black privacy-toggle">R$ 0.00</span></div>
                 </div>
             </div>
-
             <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic">Resetar Trava de Segurança</button>
-
-            <div class="flex items-center gap-2 px-1">
-                <i data-lucide="history" class="w-3 h-3 text-blue-500"></i>
-                <p class="text-[9px] uppercase font-black text-gray-400 tracking-widest italic">Histórico de Transações</p>
-            </div>
-
-            <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden">
-                <table class="w-full text-[10px] text-left">
-                    <tbody id="history-body" class="divide-y divide-white/5"></tbody>
-                </table>
-            </div>
+            <div class="flex items-center gap-2 px-1"><i data-lucide="history" class="w-3 h-3 text-blue-500"></i><p class="text-[9px] uppercase font-black text-gray-400 tracking-widest italic">Histórico de Transações</p></div>
+            <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden italic"><table class="w-full text-[10px] text-left"><tbody id="history-body" class="divide-y divide-white/5"></tbody></table></div>
         </section>
     </main>
 
@@ -136,12 +126,16 @@
             const icon = btn.querySelector('i');
             icon.classList.add('rotate-icon');
             try {
-                const res = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
-                const data = await res.json();
-                if(data.status === "success") {
+                const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { 
+                    method: 'POST', 
+                    headers: { 'Authorization': `Bearer ${CONFIG.key}`, 'Content-Type': 'application/json' } 
+                });
+                const resData = await response.json();
+                if(resData.status === "success") {
                     icon.setAttribute('data-lucide', 'check');
                     lucide.createIcons();
                     setTimeout(() => { icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons(); icon.classList.remove('rotate-icon'); }, 1500);
+                    fetchLatestSignals(); fetchBanca();
                 }
             } catch(e) { icon.classList.remove('rotate-icon'); }
         }
@@ -149,19 +143,23 @@
         async function fetchLatestSignals() {
             const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             const container = document.getElementById('signal-container');
-            if(!data || data.length === 0) { container.innerHTML = ''; return; }
+            if(!data || data.length === 0) { container.innerHTML = '<p class="text-center text-xs text-gray-500 py-10">AGUARDANDO SINAIS...</p>'; return; }
             
             const filtered = data.filter(i => {
+                const source = (i.fonte || "").toUpperCase();
+                const asset = (i.ativo || "").toUpperCase();
                 if(currentFilter === 'TUDO') return true;
-                if(currentFilter === 'CRIPTO') return i.ativo.includes('BTC') || i.ativo.includes('ETH');
-                if(currentFilter === 'USA') return i.fonte === 'ENGINE' || i.ativo.includes('$');
-                if(currentFilter === 'B3') return i.fonte === 'B3';
+                if(currentFilter === 'CRIPTO') return asset.includes('BTC') || asset.includes('ETH') || asset.includes('USDT');
+                if(currentFilter === 'USA') return source === 'ENGINE' || asset.includes('$');
+                if(currentFilter === 'B3') return source === 'B3';
                 return false;
             });
 
+            if(filtered.length === 0) { container.innerHTML = '<p class="text-center text-xs text-gray-500 py-10">NENHUM SINAL DISPONÍVEL</p>'; return; }
+
             container.innerHTML = filtered.map(item => {
                 const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
-                const hasNews = item.motivo_fato_relevante && item.motivo_fato_relevante.length > 20;
+                const hasNews = item.motivo_fato_relevante && item.motivo_fato_relevante.trim() !== "" && !item.motivo_fato_relevante.includes("Análise técnica padrão");
                 return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                     <div class="flex justify-between items-start mb-1">
                         <div class="flex flex-col">
@@ -178,12 +176,14 @@
                         </div>
                         <span class="text-[9px] text-blue-400 font-black tracking-widest uppercase italic">Score ${item.score_confianca}/10</span>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 mb-4 mt-2 bg-black/20 p-3 rounded-xl border border-white/5 text-center">
-                        <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white font-black">${item.preco_entrada}</span></div>
-                        <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 font-black">${item.take_profit}</span></div>
-                        <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 font-black">${item.stop_loss}</span></div>
+                    <div class="grid grid-cols-3 gap-2 mb-4 mt-2 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic">
+                        <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white">${item.preco_entrada}</span></div>
+                        <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400">${item.take_profit}</span></div>
+                        <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400">${item.stop_loss}</span></div>
                     </div>
-                    <p class="text-[10px] text-gray-400 leading-tight mb-4">"${item.motivo_fato_relevante || 'Aguardando confirmação de fluxo...'}"</p>
+                    <p class="text-[10px] text-gray-400 leading-tight mb-4 font-black italic">
+                        "${hasNews ? item.motivo_fato_relevante : 'Nenhuma notícia relevante encontrada para este ativo no momento.'}"
+                    </p>
                     <div class="flex justify-between items-center pt-3 border-t border-white/5">
                         <div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte}</div>
                         <button class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic">EXECUTAR</button>
