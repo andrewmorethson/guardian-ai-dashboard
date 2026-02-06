@@ -17,6 +17,7 @@
         .filter-btn.active { background: #2563eb; border-color: #2563eb; color: white; }
         .refresh-wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: #161b22; border: 1px solid #30363d; cursor: pointer; transition: 0.3s; }
         .refresh-wrapper.loading i { animation: rotate 1s linear infinite; color: #2563eb; }
+        .refresh-wrapper.success { background: #2563eb; border-color: #2563eb; }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .label-intel { font-size: 7px; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: 0.05em; padding: 2px 0; display: block; }
         .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid var(--border-low); z-index: 100; display: flex; justify-content: space-around; padding: 15px 0; padding-bottom: env(safe-area-inset-bottom); }
@@ -25,6 +26,7 @@
         .content-section { display: none; }
         .content-section.active { display: block; }
         .privacy-hidden { background-color: #30363d !important; color: transparent !important; border-radius: 4px; pointer-events: none; }
+        ::-webkit-scrollbar { width: 0px; }
     </style>
 </head>
 <body>
@@ -92,7 +94,10 @@
                     <div class="card-inner p-3 flex flex-col border-l-2 border-purple-500"><span class="text-[7px] text-purple-500 uppercase">Reserva</span><span id="w-reserve" class="text-xs privacy-toggle">R$ 0.00</span></div>
                 </div>
             </div>
-            <button onclick="window.manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic tracking-widest text-gray-400 active:bg-blue-600 transition-all">Resetar Trava de Segurança</button>
+
+            <button id="reset-safety-btn" onclick="window.manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic tracking-widest text-gray-400 active:bg-blue-600 transition-all">Resetar Trava de Segurança</button>
+            
+            <div class="flex items-center gap-2 px-1"><i data-lucide="history" class="w-3 h-3 text-blue-500"></i><p class="text-[9px] uppercase font-black text-gray-400 italic">Histórico de Transações</p></div>
             <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden"><table class="w-full text-[10px] text-left"><tbody id="history-body" class="divide-y divide-white/5"></tbody></table></div>
         </section>
     </main>
@@ -124,27 +129,40 @@
                 const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { 
                     method: 'POST', 
                     headers: { 'Authorization': `Bearer ${CONFIG.key}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbol: "BTCUSDT" })
+                    body: JSON.stringify({ force_refresh: true })
                 });
                 const data = await response.json();
-                wrapper.classList.remove('loading');
-                fetchLatestSignals(); fetchBanca();
+                if(data.status === "success" || data.status === "aborted") {
+                    wrapper.classList.remove('loading'); wrapper.classList.add('success');
+                    icon.setAttribute('data-lucide', 'check'); lucide.createIcons();
+                    setTimeout(() => {
+                        wrapper.classList.remove('success');
+                        icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons();
+                        fetchLatestSignals(); fetchBanca();
+                    }, 1500);
+                } else { wrapper.classList.remove('loading'); }
             } catch(e) { wrapper.classList.remove('loading'); }
+        };
+
+        window.manualResetLosses = async function() {
+            try {
+                await sbClient.from('perfil_usuario').update({ count_loss: 0 }).match({ id: 1 });
+                fetchBanca(); alert("Segurança Resetada.");
+            } catch(e) {}
         };
 
         window.switchTab = function(id) { 
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            document.getElementById(`sec-${id}`).classList.add('active');
-            document.getElementById(`nav-${id}`).classList.add('active');
-            lucide.createIcons();
-            if(id === 'wallet') fetchHistoryTable();
+            document.getElementById(`sec-${id}`).classList.add('active'); document.getElementById(`nav-${id}`).classList.add('active');
+            lucide.createIcons(); if(id === 'wallet') fetchHistoryTable();
             applyPrivacyUI();
         };
 
         window.togglePrivacy = function() { isPrivate = !isPrivate; applyPrivacyUI(); };
         function applyPrivacyUI() { 
             document.querySelectorAll('.privacy-toggle').forEach(el => isPrivate ? el.classList.add('privacy-hidden') : el.classList.remove('privacy-hidden'));
+            ['privacy-icon-home', 'privacy-icon-wallet'].forEach(id => { const el = document.getElementById(id); if(el) { el.setAttribute('data-lucide', isPrivate ? 'eye-off' : 'eye'); lucide.createIcons(); } });
         }
 
         async function fetchLatestSignals() {
@@ -152,17 +170,34 @@
                 const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
                 const container = document.getElementById('signal-container');
                 const filtered = data.filter(i => {
+                    const asset = i.ativo.toUpperCase();
                     if(currentFilter === 'TUDO') return true;
-                    if(currentFilter === 'CRIPTO') return i.ativo.includes('USDT');
+                    if(currentFilter === 'CRIPTO') return asset.includes('USDT') || asset.includes('/');
+                    if(currentFilter === 'USA') return asset.includes('$');
+                    if(currentFilter === 'B3') return /^[A-Z]{4}[0-9]{1,2}$/.test(asset);
                     return false;
                 });
 
                 container.innerHTML = filtered.map((item) => {
                     const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
                     const isAuto = item.status_execucao === 'EXECUTADO';
+                    const score = item.score_confianca || 0;
+                    let label = "ANÁLISE: GRÁFICO"; let labelColor = "text-gray-400";
+                    if(score >= 8) { label = "GRÁFICO + NOTÍCIA"; labelColor = "text-blue-500"; }
+                    else if(item.motivo_fato_relevante?.length > 10) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
+
                     return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                         <div class="flex justify-between items-start mb-1">
-                            <span class="text-2xl text-white font-black italic uppercase">${item.ativo}</span>
+                            <div class="flex flex-col">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
+                                    <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1">
+                                        <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
+                                        <span class="text-[10px]">9.2%</span>
+                                    </div>
+                                </div>
+                                <span class="label-intel ${labelColor}">${label}</span>
+                            </div>
                             <span class="text-[7px] px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-black">${item.score_confianca}/10 SCORE</span>
                         </div>
                         <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic">
@@ -181,7 +216,7 @@
                             </button>
                         </div>
                     </div>`;
-                }).join('');
+                }).join(''); lucide.createIcons();
             } catch(e) {}
         }
 
@@ -189,28 +224,54 @@
             try {
                 const { data } = await sbClient.from('perfil_usuario').select('*').limit(1).maybeSingle();
                 if(data) {
-                    document.getElementById('home-balance').innerText = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
+                    const history = await sbClient.from('historico_operacoes').select('resultado').order('executado_em', { ascending: false }).limit(2);
+                    const isLocked = history.data?.length === 2 && history.data.every(h => h.resultado === 'LOSS');
+                    document.getElementById('safety-status').innerText = isLocked ? "SEQUENTIAL LOCK: ATIVO" : "Monitorando Sequence";
+                    document.getElementById('safety-status').className = isLocked ? "text-[9px] text-red-500 italic font-black" : "text-[9px] text-white italic";
+                    if(history.data) {
+                        document.getElementById('dot-1').style.backgroundColor = history.data[0]?.resultado === 'LOSS' ? '#dc2626' : '#374151';
+                        document.getElementById('dot-2').style.backgroundColor = history.data[1]?.resultado === 'LOSS' ? '#dc2626' : '#374151';
+                    }
+                    const s = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
+                    document.getElementById('home-balance').innerText = s;
+                    document.getElementById('wallet-balance').innerText = s;
                     document.getElementById('w-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
                     document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
+                    document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
+                    document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
                 }
             } catch(e) {}
         }
 
         async function updateMonitors() {
             try {
-                const [b, e] = await Promise.all([ 
+                const [u, b, e] = await Promise.all([ 
+                    fetch('https://economia.awesomeapi.com.br/last/USD-BRL').then(r => r.json()), 
                     fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT').then(r => r.json()), 
                     fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT').then(r => r.json()) 
                 ]);
+                document.getElementById('usd-price').innerText = `R$ ${Number(u.USDBRL.bid).toFixed(2)}`;
                 document.getElementById('btc-price').innerText = `$ ${Number(b.price).toFixed(0)}`;
                 document.getElementById('eth-price').innerText = `$ ${Number(e.price).toFixed(0)}`;
+                const h = new Date().getHours(); const op = h >= 9 && h < 18;
+                document.getElementById('conn-status').style.backgroundColor = op ? '#4ade80' : '#ef4444';
+                document.getElementById('market-status-text').innerText = op ? 'OPEN' : 'CLOSED';
+            } catch(e) {}
+        }
+
+        async function fetchHistoryTable() {
+            try {
+                const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
+                const body = document.getElementById('history-body');
+                if(!data || !body) return;
+                body.innerHTML = data.map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
             } catch(e) {}
         }
 
         async function init() {
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key, { auth: { persistSession: false } });
-            lucide.createIcons();
-            await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
+            lucide.createIcons(); await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
+            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
             setInterval(updateMonitors, 30000);
         }
         window.onload = init;
