@@ -268,7 +268,7 @@
                 if(!data || !body) return;
                 body.innerHTML = data.map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
             } catch(e) {}
-        }
+        } 
 
         async function init() {
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key, { auth: { persistSession: false } });
