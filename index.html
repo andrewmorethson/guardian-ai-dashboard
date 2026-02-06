@@ -1,283 +1,81 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v4.2.0</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root { --radius-core: 24px; --radius-inner: 16px; --bg-main: #0d1117; --bg-card: #161b22; --border-low: #30363d; --accent-primary: #2563eb; }
-        body { background-color: var(--bg-main) !important; color: #e6edf3; font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 110px; overflow-x: hidden; font-weight: 900; font-style: italic; }
-        header { position: sticky; top: 0; z-index: 50; background-color: var(--bg-main); padding: 12px 16px; border-bottom: 1px solid var(--border-low); display: flex; justify-content: space-between; align-items: center; }
-        main { padding: 16px; }
-        .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
-        .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; white-space: nowrap; }
-        .filter-btn.active[data-cat="TUDO"] { background: #2563eb; border-color: #2563eb; color: white; }
-        .filter-btn.active[data-cat="USA"] { background: #ef4444; border-color: #ef4444; color: white; }
-        .filter-btn.active[data-cat="B3"] { background: #22c55e; border-color: #22c55e; color: white; }
-        .filter-btn.active[data-cat="CRIPTO"] { background: #f59e0b; border-color: #f59e0b; color: white; }
-        .refresh-wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: #161b22; border: 1px solid #30363d; cursor: pointer; transition: 0.3s; }
-        .refresh-wrapper.loading { border-color: #2563eb; background: rgba(37, 99, 235, 0.1); }
-        .refresh-wrapper.loading i { animation: rotate 1s linear infinite; color: #2563eb; }
-        .refresh-wrapper.success { background: #2563eb; border-color: #2563eb; }
-        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .label-intel { font-size: 7px; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: 0.05em; padding: 2px 0; display: block; }
-        .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid var(--border-low); z-index: 100; display: flex; justify-content: space-around; padding: 15px 0; padding-bottom: env(safe-area-inset-bottom); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 9px; color: #8b949e; cursor: pointer; text-transform: uppercase; }
-        .nav-item.active { color: var(--accent-primary); }
-        .content-section { display: none; }
-        .content-section.active { display: block; }
-        .privacy-hidden { background-color: #30363d !important; color: transparent !important; border-radius: 4px; pointer-events: none; }
-        ::-webkit-scrollbar { width: 0px; }
-    </style>
-</head>
-<body>
-    <header>
-        <div class="bg-blue-600 p-2 rounded-xl"><i data-lucide="zap" class="w-5 h-5 text-white fill-white"></i></div>
-        <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
-            <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap">
-                <div id="conn-status" class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
-                <span id="market-status-text" class="text-[7px] text-gray-400 uppercase tracking-tighter">OFF</span>
-            </div>
-            <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap"><span class="text-[7px] text-blue-400 uppercase">USD</span><span id="usd-price" class="text-[8px] text-white">R$ 0.00</span></div>
-            <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap"><span class="text-[7px] text-orange-400 uppercase">BTC</span><span id="btc-price" class="text-[8px] text-white">$ 0.0</span></div>
-            <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap"><span class="text-[7px] text-purple-400 uppercase">ETH</span><span id="eth-price" class="text-[8px] text-white">$ 0.0</span></div>
-        </div>
-    </header>
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.34.0";
 
-    <main>
-        <section id="sec-home" class="content-section active space-y-4">
-            <div class="card-inner p-3 flex justify-between items-center border-l-4 border-blue-600 bg-blue-600/5">
-                <div><p class="text-[7px] text-blue-400 uppercase tracking-widest">Sequential SafeGuard</p><p id="safety-status" class="text-[9px] text-white italic">Monitorando Sequence</p></div>
-                <div id="loss-indicator" class="flex gap-2">
-                    <div id="dot-1" class="w-2.5 h-2.5 rounded-full bg-gray-700 transition-colors"></div>
-                    <div id="dot-2" class="w-2.5 h-2.5 rounded-full bg-gray-700 transition-colors"></div>
-                </div>
-            </div>
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Content-Type': 'application/json'
+};
 
-            <div class="bg-[#161b22] border border-[#30363d] rounded-[24px] p-5 shadow-2xl relative">
-                <div class="flex justify-between items-center mb-1">
-                    <p class="text-[9px] uppercase text-blue-500">Patrimônio Principal</p>
-                    <button onclick="window.togglePrivacy()"><i id="privacy-icon-home" data-lucide="eye" class="w-4 h-4 text-gray-500"></i></button>
-                </div>
-                <h2 id="home-balance" class="text-4xl text-white italic tracking-tighter privacy-toggle">R$ 0.00</h2>
-                <div class="flex gap-4 mt-3 pt-3 border-t border-white/5">
-                    <div><p class="text-[7px] text-gray-500 uppercase">Operações</p><p id="count-in" class="text-xs text-white">0</p></div>
-                    <div><p class="text-[7px] text-green-500 uppercase">Win</p><p id="count-win" class="text-xs text-green-400">0</p></div>
-                    <div><p class="text-[7px] text-red-500 uppercase">Loss</p><p id="count-loss" class="text-xs text-red-400">0</p></div>
-                </div>
-            </div>
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: corsHeaders });
 
-            <div class="flex items-center justify-between gap-2 py-1">
-                <div class="flex gap-2 overflow-x-auto no-scrollbar">
-                    <button onclick="window.updateFilter('TUDO')" id="btn-TUDO" class="filter-btn active" data-cat="TUDO">Tudo</button>
-                    <button onclick="window.updateFilter('USA')" id="btn-USA" class="filter-btn" data-cat="USA">USA</button>
-                    <button onclick="window.updateFilter('B3')" id="btn-B3" class="filter-btn" data-cat="B3">B3</button>
-                    <button onclick="window.updateFilter('CRIPTO')" id="btn-CRIPTO" class="filter-btn" data-cat="CRIPTO">Cripto</button>
-                </div>
-                <div id="refresh-wrapper" onclick="window.triggerGuardianEngine()" class="refresh-wrapper">
-                    <i id="refresh-icon" data-lucide="refresh-cw" class="w-4 h-4 text-gray-400 transition-colors"></i>
-                </div>
-            </div>
-            <div id="signal-container" class="grid grid-cols-1 gap-4"></div>
-        </section>
+  try {
+    const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
+      auth: { persistSession: false }
+    });
 
-        <section id="sec-wallet" class="content-section space-y-4">
-            <div class="bg-[#161b22] border border-[#30363d] rounded-[24px] p-5">
-                <div class="flex justify-between items-center mb-4">
-                    <p class="text-[10px] text-blue-500 uppercase">Carteira Consolidada</p>
-                    <button onclick="window.togglePrivacy()"><i id="privacy-icon-wallet" data-lucide="eye" class="w-4 h-4 text-gray-500"></i></button>
-                </div>
-                <h2 id="wallet-balance" class="text-4xl text-white italic tracking-tighter privacy-toggle mb-6">R$ 0.00</h2>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="card-inner p-3 flex flex-col"><span class="text-[7px] text-gray-500 uppercase">Bruto</span><span id="w-bruto" class="text-xs privacy-toggle">R$ 0.00</span></div>
-                    <div class="card-inner p-3 flex flex-col border-l-2 border-green-500"><span class="text-[7px] text-green-500 uppercase">Líquido</span><span id="w-liquido" class="text-xs privacy-toggle">R$ 0.00</span></div>
-                    <div class="card-inner p-3 flex flex-col border-l-2 border-yellow-500"><span class="text-[7px] text-yellow-500 uppercase">Reinvestir</span><span id="w-reinvest" class="text-xs privacy-toggle">R$ 0.00</span></div>
-                    <div class="card-inner p-3 flex flex-col border-l-2 border-purple-500"><span class="text-[7px] text-purple-500 uppercase">Reserva</span><span id="w-reserve" class="text-xs privacy-toggle">R$ 0.00</span></div>
-                </div>
-            </div>
+    // --- PASSO 3: TRAVA DE SEGURANÇA (SEQUENTIAL SAFEGUARD) ---
+    const { data: history } = await sb
+      .from('historico_operacoes')
+      .select('resultado')
+      .order('executado_em', { ascending: false })
+      .limit(2);
 
-            <button onclick="window.manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic tracking-widest text-gray-400 active:bg-blue-600 transition-all">Resetar Trava de Segurança</button>
-            
-            <div class="flex items-center gap-2 px-1"><i data-lucide="history" class="w-3 h-3 text-blue-500"></i><p class="text-[9px] uppercase font-black text-gray-400 italic">Histórico de Transações</p></div>
-            <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden"><table class="w-full text-[10px] text-left"><tbody id="history-body" class="divide-y divide-white/5"></tbody></table></div>
-        </section>
-    </main>
+    // Se as últimas duas operações forem LOSS, bloqueia o motor
+    const isLocked = history && history.length === 2 && history.every(h => h.resultado === 'LOSS');
 
-    <nav class="mobile-nav">
-        <div id="nav-home" onclick="window.switchTab('home')" class="nav-item active"><i data-lucide="zap"></i><span>Sinais</span></div>
-        <div id="nav-wallet" onclick="window.switchTab('wallet')" class="nav-item"><i data-lucide="wallet"></i><span>Carteira</span></div>
-    </nav>
+    if (isLocked) {
+      return new Response(JSON.stringify({ 
+        status: 'aborted', 
+        reason: 'TRAVA DE SEGURANÇA ATIVA: 2 Losses consecutivos detectados. Reset manual necessário.' 
+      }), { status: 200, headers: corsHeaders });
+    }
 
-    <script>
-        const CONFIG = { url: "https://puwjojeeuvtfzevkvzjd.supabase.co", key: "sb_publishable_o8XZmMMgw5l63TcPRdpmrA_T99K-eDX" };
-        let sbClient, currentFilter = 'TUDO', isPrivate = false;
+    // --- EXECUÇÃO NORMAL DA ENGINE ---
+    const body = await req.json().catch(() => ({}));
+    const symbol = (body.symbol || 'BTCUSDT').toUpperCase();
+    
+    // Predição de 5 Minutos (Binance)
+    const klinesRes = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1m&limit=5`);
+    const klines = await klinesRes.json();
+    const lastClose = parseFloat(klines[klines.length - 1][4]);
+    
+    // Notícias Financeiras (NewsAPI)
+    const newsRes = await fetch(`https://newsapi.org/v2/everything?q=${symbol.replace("USDT", "")}+market&language=en&sortBy=publishedAt&pageSize=3`, {
+      headers: { 'Authorization': `Bearer ${Deno.env.get('NEWS_API_KEY')}` }
+    });
+    const newsData = await newsRes.json();
+    const context = newsData.articles?.map((a: any) => a.title).join(" | ") || "Contexto técnico.";
 
-        window.updateFilter = function(cat) { 
-            currentFilter = cat; 
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
-            const activeBtn = document.querySelector(`.filter-btn[data-cat="${cat}"]`);
-            if(activeBtn) activeBtn.classList.add('active');
-            fetchLatestSignals(); 
-        };
+    // IA: Geração de Sinal
+    const aiResp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'system', content: "Expert Trader. Retorne JSON se houver confluência." },
+                   { role: 'user', content: `Analise ${symbol}. News: ${context}. Preço: ${lastClose}.` }]
+      })
+    });
 
-        window.triggerGuardianEngine = async function() {
-            const wrapper = document.getElementById('refresh-wrapper');
-            const icon = document.getElementById('refresh-icon');
-            if(wrapper.classList.contains('loading')) return;
-            wrapper.classList.add('loading');
-            try {
-                const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { 
-                    method: 'POST', 
-                    headers: { 'Authorization': `Bearer ${CONFIG.key}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ force_refresh: true })
-                });
-                const data = await response.json();
-                if(data.status === "success" || data.status === "aborted") {
-                    wrapper.classList.remove('loading');
-                    wrapper.classList.add('success');
-                    icon.setAttribute('data-lucide', 'check');
-                    icon.classList.add('text-white');
-                    lucide.createIcons();
-                    setTimeout(() => {
-                        wrapper.classList.remove('success');
-                        icon.setAttribute('data-lucide', 'refresh-cw');
-                        icon.classList.remove('text-white');
-                        lucide.createIcons();
-                        fetchLatestSignals(); fetchBanca();
-                    }, 1500);
-                } else { wrapper.classList.remove('loading'); }
-            } catch(e) { wrapper.classList.remove('loading'); }
-        };
+    const aiJson = await aiResp.json();
+    const verdict = JSON.parse(aiJson.choices[0].message.content.replace(/```json|```/g, "").trim());
 
-        window.manualResetLosses = async function() {
-            try {
-                await sbClient.from('perfil_usuario').update({ count_loss: 0 }).match({ id: 1 });
-                fetchBanca();
-                alert("Segurança Resetada.");
-            } catch(e) {}
-        };
+    // Persistência na Base v4
+    await sb.from('log_oportunidades').insert([{
+      ativo: verdict.ativo,
+      score_confianca: verdict.score,
+      motivo_fato_relevante: verdict.analise,
+      preco_entrada: lastClose.toFixed(2),
+      take_profit: Number(verdict.alvo).toFixed(2),
+      stop_loss: Number(verdict.stop).toFixed(2),
+      fonte: "ENGINE"
+    }]);
 
-        window.switchTab = function(id) { 
-            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            document.getElementById(`sec-${id}`).classList.add('active'); document.getElementById(`nav-${id}`).classList.add('active');
-            lucide.createIcons(); 
-            if(id === 'wallet') fetchHistoryTable();
-            applyPrivacyUI();
-        };
+    return new Response(JSON.stringify({ status: 'success' }), { status: 200, headers: corsHeaders });
 
-        window.togglePrivacy = function() { isPrivate = !isPrivate; applyPrivacyUI(); };
-        
-        function applyPrivacyUI() { 
-            document.querySelectorAll('.privacy-toggle').forEach(el => isPrivate ? el.classList.add('privacy-hidden') : el.classList.remove('privacy-hidden'));
-            ['privacy-icon-home', 'privacy-icon-wallet'].forEach(id => { const el = document.getElementById(id); if(el) { el.setAttribute('data-lucide', isPrivate ? 'eye-off' : 'eye'); lucide.createIcons(); } });
-        }
-
-        async function fetchLatestSignals() {
-            try {
-                const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
-                const container = document.getElementById('signal-container');
-                if(!data || data.length === 0) { container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d]"><p class="text-[9px] text-gray-500 uppercase tracking-widest">Aguardando ativos...</p></div>'; return; }
-                
-                const filtered = data.filter(i => {
-                    const asset = (i.ativo || "").toUpperCase();
-                    if(currentFilter === 'TUDO') return true;
-                    if(currentFilter === 'CRIPTO') return asset.includes('/') || asset.includes('USDT');
-                    if(currentFilter === 'USA') return asset.includes('$');
-                    if(currentFilter === 'B3') return /^[A-Z]{4}[0-9]{1,2}$/.test(asset);
-                    return false;
-                });
-
-                container.innerHTML = filtered.map((item) => {
-                    const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
-                    const score = item.score_confianca || 0;
-                    const motivo = (item.motivo_fato_relevante || "").toUpperCase();
-                    let label = "ANÁLISE: GRÁFICO"; let labelColor = "text-gray-400";
-                    if(score >= 8 && motivo.length > 50) { label = "GRÁFICO + NOTÍCIA"; labelColor = "text-blue-500"; }
-                    else if(motivo.includes("IMPACTO") || motivo.includes("NOTÍCIA")) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
-
-                    return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
-                        <div class="flex justify-between items-start mb-1">
-                            <div class="flex flex-col">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
-                                    <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1">
-                                        <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
-                                        <span class="text-[10px]">9.2%</span>
-                                    </div>
-                                </div>
-                                <span class="label-intel ${labelColor}">${label}</span>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 mb-4 mt-2 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic">
-                            <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white font-black">${item.preco_entrada}</span></div>
-                            <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 font-black">${item.take_profit}</span></div>
-                            <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 font-black">${item.stop_loss}</span></div>
-                        </div>
-                        <div class="mb-4">
-                            <p class="text-[8px] text-blue-500 uppercase font-black italic mb-1 tracking-widest">Fato Relevante / News:</p>
-                            <p class="text-[10px] text-gray-300 leading-tight italic font-black">"${item.motivo_fato_relevante || 'Processando análise...'}"</p>
-                        </div>
-                        <div class="flex justify-between items-center pt-3 border-t border-white/5">
-                            <div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black">${item.fonte}</div>
-                            <button class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic">EXECUTAR</button>
-                        </div>
-                    </div>`;
-                }).join(''); lucide.createIcons();
-            } catch(e) {}
-        }
-
-        async function fetchBanca() {
-            try {
-                const { data } = await sbClient.from('perfil_usuario').select('*').limit(1).maybeSingle();
-                if(data) {
-                    const s = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
-                    document.getElementById('home-balance').innerText = s;
-                    document.getElementById('wallet-balance').innerText = s;
-                    document.getElementById('w-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
-                    document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
-                    document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
-                    document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
-                }
-            } catch(e) {}
-        }
-
-        async function fetchHistoryTable() {
-            try {
-                const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
-                const body = document.getElementById('history-body');
-                if(!data || !body) return;
-                body.innerHTML = data.map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
-            } catch(e) {}
-        }
-
-        async function updateMonitors() {
-            try {
-                const [u, b, e] = await Promise.all([ 
-                    fetch('https://economia.awesomeapi.com.br/last/USD-BRL').then(r => r.json()), 
-                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT').then(r => r.json()), 
-                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT').then(r => r.json()) 
-                ]);
-                document.getElementById('usd-price').innerText = `R$ ${Number(u.USDBRL.bid).toFixed(2)}`;
-                document.getElementById('btc-price').innerText = `$ ${Number(b.price).toFixed(0)}`;
-                document.getElementById('eth-price').innerText = `$ ${Number(e.price).toFixed(0)}`;
-                const h = new Date().getHours(); const op = h >= 9 && h < 18;
-                document.getElementById('conn-status').style.backgroundColor = op ? '#4ade80' : '#ef4444';
-                document.getElementById('market-status-text').innerText = op ? 'OPEN' : 'CLOSED';
-            } catch(e) {}
-        }
-
-        async function init() {
-            sbClient = supabase.createClient(CONFIG.url, CONFIG.key, { auth: { persistSession: false } });
-            lucide.createIcons(); 
-            await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
-            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
-            setInterval(updateMonitors, 30000);
-        }
-        window.onload = init;
-    </script>
-</body>
-</html>
+  } catch (err) {
+    return new Response(JSON.stringify({ status: 'aborted', error: err.message }), { status: 200, headers: corsHeaders });
+  }
+});
