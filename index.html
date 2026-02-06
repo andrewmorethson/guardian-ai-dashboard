@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v4.1.3</title>
+    <title>Guardian AI v4.1.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -18,15 +18,12 @@
         .filter-btn.active[data-cat="USA"] { background: #ef4444; border-color: #ef4444; color: white; }
         .filter-btn.active[data-cat="B3"] { background: #22c55e; border-color: #22c55e; color: white; }
         .filter-btn.active[data-cat="CRIPTO"] { background: #f59e0b; border-color: #f59e0b; color: white; }
-        
-        .refresh-wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: #161b22; border: 1px solid #30363d; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .refresh-wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: #161b22; border: 1px solid #30363d; cursor: pointer; transition: 0.3s; }
         .refresh-wrapper.loading { border-color: #2563eb; background: rgba(37, 99, 235, 0.1); }
         .refresh-wrapper.loading i { animation: rotate 1s linear infinite; color: #2563eb; }
         .refresh-wrapper.success { background: #2563eb; border-color: #2563eb; }
-        
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .label-intel { font-size: 7px; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: 0.05em; padding: 2px 0; display: block; }
-        
         .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid var(--border-low); z-index: 100; display: flex; justify-content: space-around; padding: 15px 0; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 9px; color: #8b949e; cursor: pointer; text-transform: uppercase; }
         .nav-item.active { color: var(--accent-primary); }
@@ -46,7 +43,6 @@
             </div>
             <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap"><span class="text-[7px] text-blue-400 uppercase">USD</span><span id="usd-price" class="text-[8px] text-white">R$ 0.00</span></div>
             <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap"><span class="text-[7px] text-orange-400 uppercase">BTC</span><span id="btc-price" class="text-[8px] text-white">$ 0.0</span></div>
-            <div class="flex items-center gap-2 bg-[#161b22] px-3 py-1.5 rounded-full border border-[#30363d] whitespace-nowrap"><span class="text-[7px] text-purple-400 uppercase">ETH</span><span id="eth-price" class="text-[8px] text-white">$ 0.0</span></div>
         </div>
     </header>
 
@@ -94,7 +90,14 @@
                     <button onclick="window.togglePrivacy()"><i id="privacy-icon-wallet" data-lucide="eye" class="w-4 h-4 text-gray-500"></i></button>
                 </div>
                 <h2 id="wallet-balance" class="text-4xl text-white italic tracking-tighter privacy-toggle mb-6">R$ 0.00</h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="card-inner p-3 flex flex-col"><span class="text-[7px] text-gray-500 uppercase">Bruto</span><span id="w-bruto" class="text-xs privacy-toggle">R$ 0.00</span></div>
+                    <div class="card-inner p-3 flex flex-col border-l-2 border-green-500"><span class="text-[7px] text-green-500 uppercase">Líquido</span><span id="w-liquido" class="text-xs privacy-toggle">R$ 0.00</span></div>
+                    <div class="card-inner p-3 flex flex-col border-l-2 border-yellow-500"><span class="text-[7px] text-yellow-500 uppercase">Reinvestir</span><span id="w-reinvest" class="text-xs privacy-toggle">R$ 0.00</span></div>
+                    <div class="card-inner p-3 flex flex-col border-l-2 border-purple-500"><span class="text-[7px] text-purple-500 uppercase">Reserva</span><span id="w-reserve" class="text-xs privacy-toggle">R$ 0.00</span></div>
+                </div>
             </div>
+            <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden"><table class="w-full text-[10px] text-left"><tbody id="history-body" class="divide-y divide-white/5"></tbody></table></div>
         </section>
     </main>
 
@@ -160,8 +163,7 @@
 
         async function fetchLatestSignals() {
             try {
-                const { data, error } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
-                if(error) throw error;
+                const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
                 const container = document.getElementById('signal-container');
                 if(!data || data.length === 0) { container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d]"><p class="text-[9px] text-gray-500 uppercase tracking-widest">Aguardando ativos...</p></div>'; return; }
                 
@@ -180,7 +182,7 @@
                     const motivo = (item.motivo_fato_relevante || "").toUpperCase();
                     let label = "ANÁLISE: GRÁFICO"; let labelColor = "text-gray-400";
                     if(score >= 8 && motivo.length > 50) { label = "GRÁFICO + NOTÍCIA"; labelColor = "text-blue-500"; }
-                    else if(motivo.includes("IMPACTO") || motivo.includes("NEWS") || motivo.includes("NOTÍCIA")) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
+                    else if(motivo.includes("IMPACTO") || motivo.includes("NOTÍCIA")) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
 
                     return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                         <div class="flex justify-between items-start mb-1">
@@ -210,25 +212,31 @@
                         </div>
                     </div>`;
                 }).join(''); lucide.createIcons();
-            } catch(e) { console.warn("Acesso Negado: Configure RLS no Supabase."); }
+            } catch(e) {}
         }
 
         async function fetchBanca() {
             try {
-                const { data, error } = await sbClient.from('perfil_usuario').select('*').limit(1).maybeSingle();
-                if(!error && data) {
+                const { data } = await sbClient.from('perfil_usuario').select('*').limit(1).maybeSingle();
+                if(data) {
                     const s = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
                     document.getElementById('home-balance').innerText = s;
+                    document.getElementById('wallet-balance').innerText = s;
+                    document.getElementById('w-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
+                    document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
+                    document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
+                    document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
                 }
             } catch(e) {}
         }
 
         async function init() {
-            // Inicialização sem persistência de sessão para evitar erro 403
+            // CONEXÃO BLINDADA CONTRA ERRO 403
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key, {
                 auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
             });
-            lucide.createIcons(); await Promise.all([fetchLatestSignals(), fetchBanca()]);
+            lucide.createIcons(); 
+            await Promise.all([fetchLatestSignals(), fetchBanca()]);
             sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
         }
         window.onload = init;
