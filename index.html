@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v4.0.103</title>
+    <title>Guardian AI v4.1.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -15,17 +15,23 @@
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
         .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; white-space: nowrap; }
         .filter-btn.active[data-cat="TUDO"] { background: #2563eb; border-color: #2563eb; color: white; }
-        .filter-btn.active[data-cat="USA"] { background: #ef4444; border-color: #ef4444; color: white; }
-        .filter-btn.active[data-cat="B3"] { background: #22c55e; border-color: #22c55e; color: white; }
-        .filter-btn.active[data-cat="CRIPTO"] { background: #f59e0b; border-color: #f59e0b; color: white; }
+        
+        /* NOVO ESTILO BOTÃO REFRESH MINIMALISTA */
+        .refresh-wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: #161b22; border: 1px solid #30363d; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .refresh-wrapper:active { transform: scale(0.9); }
+        .refresh-wrapper.loading { border-color: #2563eb; background: rgba(37, 99, 235, 0.1); }
+        .refresh-wrapper.loading i { animation: rotate 1s linear infinite; color: #2563eb; }
+        .refresh-wrapper.success { background: #2563eb; border-color: #2563eb; }
+        
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .label-intel { font-size: 7px; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: 0.05em; padding: 2px 0; display: block; }
+        
         .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid var(--border-low); z-index: 100; display: flex; justify-content: space-around; padding: 15px 0; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 9px; color: #8b949e; cursor: pointer; text-transform: uppercase; }
         .nav-item.active { color: var(--accent-primary); }
         .content-section { display: none; }
         .content-section.active { display: block; }
         .privacy-hidden { background-color: #30363d !important; color: transparent !important; border-radius: 4px; pointer-events: none; }
-        .rotate-icon { animation: rotate 1s linear infinite; }
-        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         ::-webkit-scrollbar { width: 0px; }
     </style>
 </head>
@@ -73,9 +79,9 @@
                     <button onclick="updateFilter('B3')" id="btn-B3" class="filter-btn" data-cat="B3">B3</button>
                     <button onclick="updateFilter('CRIPTO')" id="btn-CRIPTO" class="filter-btn" data-cat="CRIPTO">Cripto</button>
                 </div>
-                <button id="refresh-btn-main" onclick="triggerGuardianEngine()" class="bg-[#2563eb] p-2 rounded-full flex-shrink-0">
-                    <i data-lucide="refresh-cw" class="w-4 h-4 text-white"></i>
-                </button>
+                <div id="refresh-wrapper" onclick="triggerGuardianEngine()" class="refresh-wrapper">
+                    <i id="refresh-icon" data-lucide="refresh-cw" class="w-4 h-4 text-gray-400 transition-colors"></i>
+                </div>
             </div>
             <div id="signal-container" class="grid grid-cols-1 gap-4"></div>
         </section>
@@ -94,8 +100,6 @@
                     <div class="card-inner p-3 flex flex-col border-l-2 border-purple-500"><span class="text-[7px] text-purple-500 uppercase">Reserva</span><span id="w-reserve" class="text-xs privacy-toggle">R$ 0.00</span></div>
                 </div>
             </div>
-            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic">Resetar Trava de Segurança</button>
-            <div class="flex items-center gap-2 px-1"><i data-lucide="history" class="w-3 h-3 text-blue-500"></i><p class="text-[9px] uppercase font-black text-gray-400 italic">Histórico de Transações</p></div>
             <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden"><table class="w-full text-[10px] text-left"><tbody id="history-body" class="divide-y divide-white/5"></tbody></table></div>
         </section>
     </main>
@@ -109,69 +113,64 @@
         const CONFIG = { url: "https://puwjojeeuvtfzevkvzjd.supabase.co", key: "sb_publishable_o8XZmMMgw5l63TcPRdpmrA_T99K-eDX" };
         let sbClient, currentFilter = 'TUDO', isPrivate = false;
 
-        function togglePrivacy() { isPrivate = !isPrivate; applyPrivacyUI(); }
-        function applyPrivacyUI() { 
-            document.querySelectorAll('.privacy-toggle').forEach(el => isPrivate ? el.classList.add('privacy-hidden') : el.classList.remove('privacy-hidden'));
-            ['privacy-icon-home', 'privacy-icon-wallet'].forEach(id => { const el = document.getElementById(id); if(el) { el.setAttribute('data-lucide', isPrivate ? 'eye-off' : 'eye'); lucide.createIcons(); } });
-        }
-        function switchTab(id) { 
-            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            document.getElementById(`sec-${id}`).classList.add('active'); document.getElementById(`nav-${id}`).classList.add('active');
-            lucide.createIcons(); if(id === 'wallet') fetchHistoryTable(); applyPrivacyUI();
-        }
-
         async function triggerGuardianEngine() {
-            const btn = document.getElementById('refresh-btn-main');
-            const icon = btn.querySelector('i');
-            if(icon) icon.classList.add('rotate-icon');
-            try {
-                const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { method: 'POST', headers: { 'Authorization': `Bearer ${CONFIG.key}` } });
-                const resData = await response.json();
-                if(resData.status === "success") {
-                    icon.setAttribute('data-lucide', 'check'); lucide.createIcons();
-                    setTimeout(() => { icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons(); icon.classList.remove('rotate-icon'); }, 1500);
-                    fetchLatestSignals(); fetchBanca();
-                }
-            } catch(e) { if(icon) icon.classList.remove('rotate-icon'); }
-        }
+            const wrapper = document.getElementById('refresh-wrapper');
+            const icon = document.getElementById('refresh-icon');
+            if(wrapper.classList.contains('loading')) return;
 
-        async function revalidateNews(ativo, index) {
-            const icon = document.getElementById(`reload-news-${index}`);
-            if(icon) icon.classList.add('rotate-icon');
+            wrapper.classList.add('loading');
             try {
                 const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { 
                     method: 'POST', 
-                    headers: { 'Authorization': `Bearer ${CONFIG.key}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbol: ativo, force_refresh: true }) 
+                    headers: { 'Authorization': `Bearer ${CONFIG.key}`, 'Content-Type': 'application/json' } 
                 });
-                if(response.ok) {
-                    icon.setAttribute('data-lucide', 'check'); lucide.createIcons();
-                    setTimeout(() => { icon.setAttribute('data-lucide', 'rotate-cw'); lucide.createIcons(); icon.classList.remove('rotate-icon'); }, 1500);
+                const data = await response.json();
+                
+                if(data.status === "success") {
+                    wrapper.classList.remove('loading');
+                    wrapper.classList.add('success');
+                    icon.setAttribute('data-lucide', 'check');
+                    icon.classList.add('text-white');
+                    lucide.createIcons();
+                    
+                    setTimeout(() => {
+                        wrapper.classList.remove('success');
+                        icon.setAttribute('data-lucide', 'refresh-cw');
+                        icon.classList.remove('text-white');
+                        lucide.createIcons();
+                        fetchLatestSignals(); fetchBanca();
+                    }, 1500);
                 }
-            } catch(e) { if(icon) icon.classList.remove('rotate-icon'); }
+            } catch(e) { wrapper.classList.remove('loading'); }
         }
 
         async function fetchLatestSignals() {
             const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             const container = document.getElementById('signal-container');
-            if(!data || data.length === 0) { container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d]"><p class="text-[9px] text-gray-500 uppercase tracking-widest">Aguardando novos ativos...</p></div>'; return; }
+            if(!data || data.length === 0) { container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d]"><p class="text-[9px] text-gray-500 uppercase tracking-widest">Aguardando ativos...</p></div>'; return; }
             
             const filtered = data.filter(i => {
                 const source = (i.fonte || "").toUpperCase();
                 const asset = (i.ativo || "").toUpperCase();
                 if(currentFilter === 'TUDO') return true;
-                if(currentFilter === 'CRIPTO') return asset.includes('/') || asset.includes('USDT') || asset.includes('BTC') || asset.includes('ETH');
+                if(currentFilter === 'CRIPTO') return asset.includes('/') || asset.includes('USDT');
                 if(currentFilter === 'USA') return source.includes('ENGINE') || asset.includes('$');
                 if(currentFilter === 'B3') return source.includes('B3') || /^[A-Z]{4}[0-9]{1,2}$/.test(asset);
                 return false;
             });
 
-            if(filtered.length === 0) { container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] font-black italic"><p class="text-[9px] text-gray-500 uppercase">Nenhum sinal para este filtro</p></div>'; return; }
-
             container.innerHTML = filtered.map((item, index) => {
                 const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
-                const hasNews = item.motivo_fato_relevante && item.motivo_fato_relevante.length > 20;
+                const score = item.score_confianca || 0;
+                const motivo = (item.motivo_fato_relevante || "").toUpperCase();
+                
+                // LÓGICA DE RÓTULOS DE INTELIGÊNCIA
+                let label = "ANÁLISE: GRÁFICO";
+                let labelColor = "text-gray-400";
+                
+                if(score >= 8 && motivo.length > 50) { label = "GRÁFICO + NOTÍCIA"; labelColor = "text-blue-500"; }
+                else if(motivo.includes("IMPACTO") || motivo.includes("NEWS")) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
+
                 return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                     <div class="flex justify-between items-start mb-1">
                         <div class="flex flex-col">
@@ -182,10 +181,10 @@
                                     <span class="text-[10px]">9.2%</span>
                                 </div>
                             </div>
-                            <span class="text-[7px] text-blue-500 font-black uppercase italic tracking-widest">${hasNews ? 'CONFLUÊNCIA: GRÁFICO + NOTÍCIA' : 'ANÁLISE: TÉCNICA'}</span>
+                            <span class="label-intel ${labelColor}">${label}</span>
                         </div>
-                        <button onclick="revalidateNews('${item.ativo}', ${index})" class="p-1.5 bg-black/40 rounded-lg border border-white/5">
-                            <i id="reload-news-${index}" data-lucide="rotate-cw" class="w-3 h-3 text-blue-400"></i>
+                        <button onclick="triggerGuardianEngine()" class="p-1.5 bg-black/40 rounded-lg border border-white/5">
+                            <i data-lucide="rotate-cw" class="w-3 h-3 text-blue-400"></i>
                         </button>
                     </div>
                     <div class="grid grid-cols-3 gap-2 mb-4 mt-2 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic">
@@ -193,7 +192,7 @@
                         <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400">${item.take_profit}</span></div>
                         <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400">${item.stop_loss}</span></div>
                     </div>
-                    <p class="text-[10px] text-gray-400 leading-tight mb-4 italic font-black">"${item.motivo_fato_relevante || 'Processando análise de confluência...'}"</p>
+                    <p class="text-[10px] text-gray-400 leading-tight mb-4 italic font-black">"${item.motivo_fato_relevante || 'Processando análise...'}"</p>
                     <div class="flex justify-between items-center pt-3 border-t border-white/5">
                         <div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[7px] rounded-md uppercase font-black tracking-widest">${item.fonte}</div>
                         <button class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic">EXECUTAR</button>
@@ -202,53 +201,10 @@
             }).join(''); lucide.createIcons();
         }
 
-        async function fetchBanca() {
-            const { data } = await sbClient.from('perfil_usuario').select('*').limit(1).maybeSingle();
-            if(data) {
-                const s = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
-                document.getElementById('home-balance').innerText = s;
-                document.getElementById('wallet-balance').innerText = s;
-                document.getElementById('w-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
-                document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
-                document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
-                document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
-                const lastTwo = await sbClient.from('historico_operacoes').select('resultado').order('executado_em', { ascending: false }).limit(2);
-                if(lastTwo.data) {
-                    document.getElementById('dot-1').style.backgroundColor = lastTwo.data[0]?.resultado === 'LOSS' ? '#dc2626' : '#374151';
-                    document.getElementById('dot-2').style.backgroundColor = lastTwo.data[1]?.resultado === 'LOSS' ? '#dc2626' : '#374151';
-                }
-            }
-        }
-
-        async function fetchHistoryTable() {
-            const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
-            const body = document.getElementById('history-body');
-            if(!data || !body) return;
-            body.innerHTML = data.map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
-        }
-
-        async function updateMonitors() {
-            try {
-                const [u, b, e] = await Promise.all([ fetch('https://economia.awesomeapi.com.br/last/USD-BRL').then(r => r.json()), fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT').then(r => r.json()), fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT').then(r => r.json()) ]);
-                document.getElementById('usd-price').innerText = `R$ ${Number(u.USDBRL.bid).toFixed(2)}`;
-                document.getElementById('btc-price').innerText = `$ ${Number(b.price).toFixed(0)}`;
-                document.getElementById('eth-price').innerText = `$ ${Number(e.price).toFixed(0)}`;
-                const h = new Date().getHours(); const op = h >= 9 && h < 18;
-                document.getElementById('conn-status').style.backgroundColor = op ? '#4ade80' : '#ef4444';
-                document.getElementById('market-status-text').innerText = op ? 'OPEN' : 'CLOSED';
-            } catch(e) {}
-        }
-
-        function updateFilter(cat) { 
-            currentFilter = cat; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
-            document.querySelector(`.filter-btn[data-cat="${cat}"]`).classList.add('active'); fetchLatestSignals(); 
-        }
-
         async function init() {
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
-            lucide.createIcons(); await Promise.all([fetchBanca(), fetchLatestSignals(), updateMonitors()]);
-            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchBanca(); fetchLatestSignals(); }).subscribe();
-            setInterval(updateMonitors, 30000);
+            lucide.createIcons(); await Promise.all([fetchLatestSignals()]);
+            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); }).subscribe();
         }
         window.onload = init;
     </script>
