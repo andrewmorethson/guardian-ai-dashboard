@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v4.1.4</title>
+    <title>Guardian AI v4.1.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -15,9 +15,6 @@
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
         .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; white-space: nowrap; }
         .filter-btn.active[data-cat="TUDO"] { background: #2563eb; border-color: #2563eb; color: white; }
-        .filter-btn.active[data-cat="USA"] { background: #ef4444; border-color: #ef4444; color: white; }
-        .filter-btn.active[data-cat="B3"] { background: #22c55e; border-color: #22c55e; color: white; }
-        .filter-btn.active[data-cat="CRIPTO"] { background: #f59e0b; border-color: #f59e0b; color: white; }
         .refresh-wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: #161b22; border: 1px solid #30363d; cursor: pointer; transition: 0.3s; }
         .refresh-wrapper.loading { border-color: #2563eb; background: rgba(37, 99, 235, 0.1); }
         .refresh-wrapper.loading i { animation: rotate 1s linear infinite; color: #2563eb; }
@@ -97,7 +94,15 @@
                     <div class="card-inner p-3 flex flex-col border-l-2 border-purple-500"><span class="text-[7px] text-purple-500 uppercase">Reserva</span><span id="w-reserve" class="text-xs privacy-toggle">R$ 0.00</span></div>
                 </div>
             </div>
-            <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden"><table class="w-full text-[10px] text-left"><tbody id="history-body" class="divide-y divide-white/5"></tbody></table></div>
+
+            <button id="reset-safety-btn" onclick="manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] uppercase border border-[#30363d] font-black italic tracking-widest text-gray-400 active:bg-blue-600 active:text-white transition-all">Resetar Trava de Segurança</button>
+            
+            <div class="flex items-center gap-2 px-1"><i data-lucide="history" class="w-3 h-3 text-blue-500"></i><p class="text-[9px] uppercase font-black text-gray-400 italic">Histórico de Transações</p></div>
+            <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden">
+                <table class="w-full text-[10px] text-left">
+                    <tbody id="history-body" class="divide-y divide-white/5"></tbody>
+                </table>
+            </div>
         </section>
     </main>
 
@@ -151,7 +156,9 @@
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             document.getElementById(`sec-${id}`).classList.add('active'); document.getElementById(`nav-${id}`).classList.add('active');
-            lucide.createIcons(); applyPrivacyUI();
+            lucide.createIcons(); 
+            if(id === 'wallet') fetchHistoryTable();
+            applyPrivacyUI();
         };
 
         window.togglePrivacy = function() { isPrivate = !isPrivate; applyPrivacyUI(); };
@@ -230,8 +237,16 @@
             } catch(e) {}
         }
 
+        async function fetchHistoryTable() {
+            try {
+                const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
+                const body = document.getElementById('history-body');
+                if(!data || !body) return;
+                body.innerHTML = data.map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
+            } catch(e) {}
+        }
+
         async function init() {
-            // CONEXÃO BLINDADA CONTRA ERRO 403
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key, {
                 auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
             });
