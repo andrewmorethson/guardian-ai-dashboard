@@ -14,7 +14,6 @@
         main { padding: 16px; }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
         
-        /* FILTROS COM CORES ESPECÍFICAS RESTAURADOS */
         .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; white-space: nowrap; }
         .filter-btn.active[data-cat="TUDO"] { background: #2563eb; border-color: #2563eb; color: white; }
         .filter-btn.active[data-cat="USA"] { background: #ef4444; border-color: #ef4444; color: white; }
@@ -126,28 +125,41 @@
             fetchLatestSignals(); 
         };
 
+        // INTEGRAÇÃO DA LOGICA DE INVOKE SOLICITADA
         window.triggerGuardianEngine = async function() {
             const wrapper = document.getElementById('refresh-wrapper');
             const icon = document.getElementById('refresh-icon');
             if(wrapper.classList.contains('loading')) return;
+            
             wrapper.classList.add('loading');
+            
             try {
-                const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { 
-                    method: 'POST', 
-                    headers: { 'Authorization': `Bearer ${CONFIG.key}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ force_refresh: true })
+                // Chamada oficial via Edge Functions Invoke
+                const { data, error } = await sbClient.functions.invoke('guardian-engine', {
+                    body: { symbol: 'BTCUSDT', name: 'Functions' },
                 });
-                const data = await response.json();
-                if(data.status === "success" || data.status === "aborted") {
-                    wrapper.classList.remove('loading'); wrapper.classList.add('success');
-                    icon.setAttribute('data-lucide', 'check'); lucide.createIcons();
-                    setTimeout(() => {
-                        wrapper.classList.remove('success');
-                        icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons();
-                        fetchLatestSignals(); fetchBanca();
-                    }, 1500);
-                } else { wrapper.classList.remove('loading'); }
-            } catch(e) { wrapper.classList.remove('loading'); }
+
+                if (error) throw error;
+
+                // Feedback visual de sucesso
+                wrapper.classList.remove('loading'); 
+                wrapper.classList.add('success');
+                icon.setAttribute('data-lucide', 'check'); 
+                lucide.createIcons();
+
+                setTimeout(() => {
+                    wrapper.classList.remove('success');
+                    icon.setAttribute('data-lucide', 'refresh-cw'); 
+                    lucide.createIcons();
+                    fetchLatestSignals(); 
+                    fetchBanca();
+                }, 1500);
+
+            } catch(e) {
+                console.error("Erro ao invocar engine:", e);
+                wrapper.classList.remove('loading');
+                // Alerta silencioso para não quebrar a UX
+            }
         };
 
         window.manualResetLosses = async function() {
@@ -175,7 +187,6 @@
                 const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
                 const container = document.getElementById('signal-container');
                 
-                // CARD VAZIO DE PLACEHOLDER RESTAURADO
                 if(!data || data.length === 0) { 
                     container.innerHTML = `<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d]">
                         <p class="text-[9px] text-gray-500 uppercase tracking-widest font-black italic">Procurando notícias relevantes e analisando mercado...</p>
@@ -196,15 +207,13 @@
                     const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
                     const isAuto = item.status_execucao === 'EXECUTADO';
                     const score = item.score_confianca || 0;
-                    const noticiaBruta = item.motivo_fato_relevante;
-                    
-                    const newsDisplay = (noticiaBruta && noticiaBruta.length > 5) 
-                        ? `"${noticiaBruta}"` 
+                    const newsDisplay = (item.motivo_fato_relevante && item.motivo_fato_relevante.length > 5) 
+                        ? `"${item.motivo_fato_relevante}"` 
                         : "Aguardando atualização de contexto via NewsAPI...";
 
                     let label = "ANÁLISE: GRÁFICO"; let labelColor = "text-gray-400";
                     if(score >= 8) { label = "GRÁFICO + NOTÍCIA"; labelColor = "text-blue-500"; }
-                    else if(noticiaBruta && noticiaBruta.length > 10) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
+                    else if(item.motivo_fato_relevante && item.motivo_fato_relevante.length > 10) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
 
                     return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                         <div class="flex justify-between items-start mb-1">
@@ -289,9 +298,17 @@
         }
 
         async function init() {
+            // Inicialização oficial via SDK Supabase
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key, { auth: { persistSession: false } });
-            lucide.createIcons(); await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
-            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
+            lucide.createIcons(); 
+            await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
+            
+            // Ouvinte Realtime para atualizações automáticas
+            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { 
+                fetchLatestSignals(); 
+                fetchBanca(); 
+            }).subscribe();
+            
             setInterval(updateMonitors, 30000);
         }
         window.onload = init;
