@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Guardian AI v4.2.5</title>
-    <!-- ⚠️ NOTA: cdn.tailwindcss.com é apenas para desenvolvimento. Para produção, use Tailwind CLI -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -15,6 +14,7 @@
         main { padding: 16px; }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
         
+        /* FILTROS COM CORES ESPECÍFICAS RESTAURADOS */
         .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; white-space: nowrap; }
         .filter-btn.active[data-cat="TUDO"] { background: #2563eb; border-color: #2563eb; color: white; }
         .filter-btn.active[data-cat="USA"] { background: #ef4444; border-color: #ef4444; color: white; }
@@ -126,69 +126,28 @@
             fetchLatestSignals(); 
         };
 
-        // INTEGRAÇÃO COMPLETA COM EDGE FUNCTION GUARDIAN-ENGINE
         window.triggerGuardianEngine = async function() {
             const wrapper = document.getElementById('refresh-wrapper');
             const icon = document.getElementById('refresh-icon');
             if(wrapper.classList.contains('loading')) return;
-            
             wrapper.classList.add('loading');
-            
             try {
-                // Chamada oficial via Edge Functions com Deno
-                const { data, error } = await sbClient.functions.invoke('guardian-engine', {
-                    body: { symbol: 'BTCUSDT' },
+                const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { 
+                    method: 'POST', 
+                    headers: { 'Authorization': `Bearer ${CONFIG.key}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ force_refresh: true })
                 });
-
-                if (error) {
-                    console.error("Guardian Engine Error:", error);
-                    throw new Error(`[${error.code}] ${error.message}`);
-                }
-
-                // Validação de resposta
-                if (!data || !data.status) {
-                    throw new Error("Resposta inválida da Edge Function");
-                }
-
-                console.log("✅ Guardian Engine Success:", {
-                    status: data.status,
-                    score: data.score,
-                    timestamp: new Date().toLocaleString('pt-BR')
-                });
-
-                // Feedback visual de sucesso
-                wrapper.classList.remove('loading'); 
-                wrapper.classList.add('success');
-                icon.setAttribute('data-lucide', 'check'); 
-                lucide.createIcons();
-
-                // Atualidade instantânea dos sinais após análise
-                setTimeout(async () => {
-                    wrapper.classList.remove('success');
-                    icon.setAttribute('data-lucide', 'refresh-cw'); 
-                    lucide.createIcons();
-                    await Promise.all([fetchLatestSignals(), fetchBanca()]);
-                }, 1500);
-
-            } catch(e) {
-                console.error("❌ Erro ao invocar Guardian Engine:", e.message);
-                console.error("📊 Diagnóstico Completo:", {
-                    message: e.message,
-                    stack: e.stack,
-                    time: new Date().toLocaleString('pt-BR')
-                });
-                
-                wrapper.classList.remove('loading');
-                
-                // Oferecer alternativa se falhar
-                if(e.message?.includes('CORS')) {
-                    console.warn("⚠️ Problema de CORS - Verifique os headers da função Edge");
-                } else if(e.message?.includes('timeout')) {
-                    console.warn("⏱️ Timeout - Edge Function demorou muito para responder");
-                } else if(e.message?.includes('401') || e.message?.includes('403')) {
-                    console.warn("🔐 Erro de autenticação - Verifique as chaves Supabase");
-                }
-            }
+                const data = await response.json();
+                if(data.status === "success" || data.status === "aborted") {
+                    wrapper.classList.remove('loading'); wrapper.classList.add('success');
+                    icon.setAttribute('data-lucide', 'check'); lucide.createIcons();
+                    setTimeout(() => {
+                        wrapper.classList.remove('success');
+                        icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons();
+                        fetchLatestSignals(); fetchBanca();
+                    }, 1500);
+                } else { wrapper.classList.remove('loading'); }
+            } catch(e) { wrapper.classList.remove('loading'); }
         };
 
         window.manualResetLosses = async function() {
@@ -213,17 +172,10 @@
 
         async function fetchLatestSignals() {
             try {
-                // Tenta buscar primeiro da tabela principal, depois de fallback
-                let { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
-                
-                // Se não houver dados na log_oportunidades, tenta sinais_mercado (guardado pela Edge Function)
-                if(!data || data.length === 0) {
-                    const { data: signalsData } = await sbClient.from('sinais_mercado').select('*').order('created_at', { ascending: false });
-                    data = signalsData;
-                }
-                
+                const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
                 const container = document.getElementById('signal-container');
                 
+                // CARD VAZIO DE PLACEHOLDER RESTAURADO
                 if(!data || data.length === 0) { 
                     container.innerHTML = `<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d]">
                         <p class="text-[9px] text-gray-500 uppercase tracking-widest font-black italic">Procurando notícias relevantes e analisando mercado...</p>
@@ -232,8 +184,7 @@
                 }
                 
                 const filtered = data.filter(i => {
-                    // Normalizar nomes de campo (compatível com ambas as tabelas)
-                    const asset = (i.ativo || i.ticker || "").toUpperCase();
+                    const asset = (i.ativo || "").toUpperCase();
                     if(currentFilter === 'TUDO') return true;
                     if(currentFilter === 'CRIPTO') return asset.includes('USDT') || asset.includes('/') || asset.includes('BTC') || asset.includes('ETH');
                     if(currentFilter === 'USA') return asset.includes('$');
@@ -242,29 +193,24 @@
                 });
 
                 container.innerHTML = filtered.map((item) => {
-                    // Compatibilidade com ambas tabelas
-                    const asset = item.ativo || item.ticker;
-                    const entrada = parseFloat(item.preco_entrada || item.entrada || 0);
-                    const alvo = parseFloat(item.take_profit || item.alvo || 0);
-                    const stop = parseFloat(item.stop_loss || item.stop || 0);
-                    const noticia = item.motivo_fato_relevante || item.noticia_contexto || item.analise;
+                    const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
+                    const isAuto = item.status_execucao === 'EXECUTADO';
+                    const score = item.score_confianca || 0;
+                    const noticiaBruta = item.motivo_fato_relevante;
                     
-                    const isUp = alvo > entrada;
-                    const isAuto = item.status_execucao === 'EXECUTADO' || item.status_sinal === 'Executado';
-                    const score = item.score_confianca || item.score || 0;
-                    const newsDisplay = (noticia && noticia.length > 5) 
-                        ? `"${noticia}"` 
+                    const newsDisplay = (noticiaBruta && noticiaBruta.length > 5) 
+                        ? `"${noticiaBruta}"` 
                         : "Aguardando atualização de contexto via NewsAPI...";
 
                     let label = "ANÁLISE: GRÁFICO"; let labelColor = "text-gray-400";
                     if(score >= 8) { label = "GRÁFICO + NOTÍCIA"; labelColor = "text-blue-500"; }
-                    else if(noticia && noticia.length > 10) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
+                    else if(noticiaBruta && noticiaBruta.length > 10) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
 
                     return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                         <div class="flex justify-between items-start mb-1">
                             <div class="flex flex-col">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-2xl text-white font-black uppercase tracking-tighter">${asset}</span>
+                                    <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
                                     <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1">
                                         <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
                                         <span class="text-[10px]">9.2%</span>
@@ -272,28 +218,26 @@
                                 </div>
                                 <span class="label-intel ${labelColor}">${label}</span>
                             </div>
-                            <span class="text-[7px] px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-black">${Math.round(score)}/10 SCORE</span>
+                            <span class="text-[7px] px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-black">${score}/10 SCORE</span>
                         </div>
                         <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic">
-                            <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white font-black">${entrada.toFixed(2)}</span></div>
-                            <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 font-black">${alvo.toFixed(2)}</span></div>
-                            <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 font-black">${stop.toFixed(2)}</span></div>
+                            <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white font-black">${item.preco_entrada}</span></div>
+                            <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 font-black">${item.take_profit}</span></div>
+                            <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 font-black">${item.stop_loss}</span></div>
                         </div>
                         <div class="mb-4">
                             <p class="text-[8px] text-blue-500 uppercase font-black italic mb-1 tracking-widest">Fato Relevante / News:</p>
                             <p class="text-[10px] text-gray-300 leading-tight italic font-black">${newsDisplay}</p>
                         </div>
                         <div class="flex justify-between items-center pt-3 border-t border-white/5">
-                            <span class="text-[7px] text-gray-500 font-black uppercase">FONTE: ${item.fonte_nome || item.fonte || 'ENGINE'}</span>
+                            <span class="text-[7px] text-gray-500 font-black uppercase">FONTE: ${item.fonte || 'ENGINE'}</span>
                             <button class="${isAuto ? 'bg-green-600' : 'bg-[#2563eb]'} text-white text-[9px] px-6 py-2 rounded-full font-black italic">
                                 ${isAuto ? 'EXECUTADO (AUTO)' : 'EXECUTAR'}
                             </button>
                         </div>
                     </div>`;
                 }).join(''); lucide.createIcons();
-            } catch(e) {
-                console.error("Erro ao buscar sinais:", e);
-            }
+            } catch(e) {}
         }
 
         async function fetchBanca() {
@@ -345,17 +289,9 @@
         }
 
         async function init() {
-            // Inicialização oficial via SDK Supabase
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key, { auth: { persistSession: false } });
-            lucide.createIcons(); 
-            await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
-            
-            // Ouvinte Realtime para atualizações automáticas
-            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { 
-                fetchLatestSignals(); 
-                fetchBanca(); 
-            }).subscribe();
-            
+            lucide.createIcons(); await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
+            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
             setInterval(updateMonitors, 30000);
         }
         window.onload = init;
