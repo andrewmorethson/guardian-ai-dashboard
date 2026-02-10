@@ -184,21 +184,47 @@
         };
 
         window.triggerGuardianEngine = async function() {
-            const wrapper = document.getElementById('refresh-wrapper');
-            const icon = document.getElementById('refresh-icon');
-            if(wrapper.classList.contains('loading')) return;
-            wrapper.classList.add('loading');
-            try {
-                const { data, error } = await sbClient.functions.invoke('analisador-de-noticias', { body: { symbol: 'BTCUSDT' } });
-                if(error) throw error;
-                wrapper.classList.remove('loading'); wrapper.classList.add('success');
-                icon.setAttribute('data-lucide', 'check'); lucide.createIcons();
-                setTimeout(() => {
-                    wrapper.classList.remove('success'); icon.setAttribute('data-lucide', 'refresh-cw'); 
-                    lucide.createIcons(); fetchLatestSignals(); fetchBanca();
-                }, 1500);
-            } catch(e) { wrapper.classList.remove('loading'); }
-        };
+    const wrapper = document.getElementById('refresh-wrapper');
+    const icon = document.getElementById('refresh-icon');
+    
+    // 1. Trava de segurança contra múltiplos cliques (Spam)
+    if(wrapper.classList.contains('loading') || wrapper.classList.contains('success')) return;
+    
+    // 2. Início do Carregamento (Visual)
+    wrapper.classList.add('loading');
+    
+    try {
+        // 3. Chamada da Engine
+        const { data, error } = await sbClient.functions.invoke('analisador-de-noticias', { 
+            body: { symbol: 'BTCUSDT' } 
+        });
+        
+        if(error) throw error;
+
+        // 4. Feedback de Sucesso (Checkmark)
+        wrapper.classList.remove('loading');
+        wrapper.classList.add('success');
+        icon.setAttribute('data-lucide', 'check');
+        lucide.createIcons();
+
+    } catch(e) {
+        console.error("Erro no Reload:", e);
+        // Feedback de erro visual (breve piscada vermelha ou apenas reset)
+        wrapper.classList.add('border-red-500');
+        setTimeout(() => wrapper.classList.remove('border-red-500'), 500);
+    } finally {
+        // 5. Reset Definitivo para permitir novo clique
+        setTimeout(() => {
+            wrapper.classList.remove('loading', 'success');
+            icon.setAttribute('data-lucide', 'refresh-cw');
+            lucide.createIcons();
+            
+            // Atualiza os dados na tela
+            fetchLatestSignals(); 
+            fetchBanca();
+        }, 1500); // Tempo do checkmark na tela
+    }
+};
 
         async function fetchLatestSignals() {
             const container = document.getElementById('signal-container');
