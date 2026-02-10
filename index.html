@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v5</title>
+    <title>Guardian AI v5.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -47,7 +47,7 @@
     <main>
         <section id="sec-home" class="content-section active space-y-4">
             <div class="card-inner p-3 flex justify-between items-center border-l-4 border-blue-600 bg-blue-600/5">
-                <div><p class="text-[7px] text-blue-400 uppercase tracking-widest">Sequential SafeGuard</p><p id="safety-status" class="text-[9px] text-white italic">Monitorando Sequence</p></div>
+                <div><p class="text-[7px] text-blue-400 uppercase tracking-widest">SafeGuard v5</p><p id="safety-status" class="text-[9px] text-white italic">Monitorando Sequence</p></div>
                 <div id="loss-indicator" class="flex gap-2">
                     <div id="dot-1" class="w-2.5 h-2.5 rounded-full bg-gray-700 transition-colors"></div>
                     <div id="dot-2" class="w-2.5 h-2.5 rounded-full bg-gray-700 transition-colors"></div>
@@ -56,7 +56,7 @@
 
             <div class="bg-[#161b22] border border-[#30363d] rounded-[24px] p-5 shadow-2xl relative">
                 <div class="flex justify-between items-center mb-1">
-                    <p class="text-[9px] uppercase text-blue-500">Patrimônio Principal</p>
+                    <p class="text-[9px] uppercase text-blue-500">Patrimônio Bruto</p>
                     <button onclick="window.togglePrivacy()"><i id="privacy-icon-home" data-lucide="eye" class="w-4 h-4 text-gray-500"></i></button>
                 </div>
                 <h2 id="home-balance" class="text-4xl text-white italic tracking-tighter privacy-toggle">R$ 0.00</h2>
@@ -123,6 +123,42 @@
         let sbClient, currentFilter = 'TUDO', isPrivate = false;
         let currentLimit = 10;
 
+        async function updateMonitors() {
+            try {
+                const resUSD = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
+                const dataUSD = await resUSD.json();
+                document.getElementById('usd-price').innerText = `R$ ${Number(dataUSD.USDBRL.bid).toFixed(2)}`;
+
+                const [resBTC, resETH] = await Promise.all([
+                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT'),
+                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT')
+                ]);
+                const dataBTC = await resBTC.json();
+                const dataETH = await resETH.json();
+                document.getElementById('btc-price').innerText = `$ ${Number(dataBTC.price).toFixed(0)}`;
+                document.getElementById('eth-price').innerText = `$ ${Number(dataETH.price).toFixed(0)}`;
+
+                const agora = new Date();
+                const diaSemana = agora.getDay(); 
+                const tempoEmMinutos = (agora.getHours() * 60) + agora.getMinutes();
+                const isDiaUtil = diaSemana >= 1 && diaSemana <= 5;
+                const isHorarioComercial = tempoEmMinutos >= 600 && tempoEmMinutos <= 1075;
+
+                const statusDot = document.getElementById('conn-status');
+                const statusText = document.getElementById('market-status-text');
+
+                if (isDiaUtil && isHorarioComercial) {
+                    statusDot.style.backgroundColor = '#4ade80';
+                    statusText.innerText = 'OPEN';
+                    statusText.className = "text-[7px] text-green-400 uppercase tracking-tighter";
+                } else {
+                    statusDot.style.backgroundColor = '#ef4444';
+                    statusText.innerText = 'CLOSED';
+                    statusText.className = "text-[7px] text-red-500 uppercase tracking-tighter";
+                }
+            } catch (e) { console.error(e); }
+        }
+
         window.updateFilter = function(cat) { 
             currentFilter = cat; 
             currentLimit = 10;
@@ -167,7 +203,6 @@
         async function fetchLatestSignals() {
             const container = document.getElementById('signal-container');
             const paginationWrapper = document.getElementById('pagination-wrapper');
-            
             const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             
             if(!data || data.length === 0) {
@@ -194,7 +229,7 @@
                     <div class="flex justify-between items-start">
                         <div class="flex flex-col">
                             <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
-                            <span class="text-[7px] uppercase font-black italic text-blue-500">ANÁLISE v5.0.2</span>
+                            <span class="text-[7px] uppercase font-black italic text-blue-500 tracking-widest">ANALYSIS v5.1.0</span>
                         </div>
                         <span class="text-[7px] px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-black">${score}/10 SCORE</span>
                     </div>
@@ -205,7 +240,7 @@
                     </div>
                     <p class="text-[10px] text-gray-300 italic font-black leading-tight">"${item.motivo_fato_relevante}"</p>
                     <div class="flex justify-between items-center pt-3 mt-3 border-t border-white/5">
-                        <span class="text-[7px] text-gray-500 font-black uppercase tracking-widest">FONTE: ${item.fonte || 'REUTERS'}</span>
+                        <span class="text-[7px] text-gray-500 font-black uppercase tracking-widest">SOURCE: ${item.fonte || 'REUTERS'}</span>
                         <button class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic uppercase">Executar</button>
                     </div>
                 </div>`;
@@ -221,9 +256,7 @@
                 <tr class="text-white font-black italic border-b border-white/5">
                     <td class="p-4 uppercase">${o.ativo}</td>
                     <td class="p-4 text-center">
-                        <span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">
-                            ${o.resultado}
-                        </span>
+                        <span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span>
                     </td>
                     <td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td>
                 </tr>`).join('');
@@ -248,7 +281,8 @@
         async function init() {
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
             lucide.createIcons();
-            await Promise.all([fetchLatestSignals(), fetchBanca()]);
+            await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
+            setInterval(updateMonitors, 30000);
             sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
         }
 
