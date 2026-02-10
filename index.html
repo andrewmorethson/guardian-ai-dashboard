@@ -126,57 +126,32 @@
         };
 
         window.triggerGuardianEngine = async function() {
-  const wrapper = document.getElementById('refresh-wrapper');
-  const icon = document.getElementById('refresh-icon');
-  if (!wrapper || wrapper.classList.contains('loading')) return;
+            const wrapper = document.getElementById('refresh-wrapper');
+            const icon = document.getElementById('refresh-icon');
+            if(wrapper.classList.contains('loading')) return;
+            wrapper.classList.add('loading');
+            try {
+                // Chamada via Invoke oficial para o analisador-de-noticias
+                const { data, error } = await sbClient.functions.invoke('analisador-de-noticias', {
+                    body: { symbol: 'BTCUSDT' }
+                });
 
-  wrapper.classList.add('loading');
+                if (error) throw error;
 
-  try {
-    const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": CONFIG.key,
-        "Authorization": `Bearer ${CONFIG.key}`,
-      },
-      body: JSON.stringify({ symbol: "BTCUSDT" }),
-    });
-
-    if (!response.ok) {
-      console.error("Erro HTTP:", response.status);
-      wrapper.classList.remove('loading');
-      return;
-    }
-
-    const data = await response.json();
-
-    if (data.status === "success" || data.status === "aborted") {
-      wrapper.classList.remove('loading');
-      wrapper.classList.add('success');
-
-      icon.setAttribute('data-lucide', 'check');
-      icon.classList.add('text-white');
-      lucide.createIcons();
-
-      setTimeout(() => {
-        wrapper.classList.remove('success');
-        icon.setAttribute('data-lucide', 'refresh-cw');
-        icon.classList.remove('text-white');
-        lucide.createIcons();
-        fetchLatestSignals();
-        fetchBanca();
-      }, 1500);
-    } else {
-      wrapper.classList.remove('loading');
-    }
-
-  } catch (err) {
-    console.error("Falha ao chamar Guardian Engine:", err);
-    wrapper.classList.remove('loading');
-  }
-};
-
+                if(data.status === "success" || data.status === "aborted") {
+                    wrapper.classList.remove('loading'); wrapper.classList.add('success');
+                    icon.setAttribute('data-lucide', 'check'); lucide.createIcons();
+                    setTimeout(() => {
+                        wrapper.classList.remove('success');
+                        icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons();
+                        fetchLatestSignals(); fetchBanca();
+                    }, 1500);
+                } else { wrapper.classList.remove('loading'); }
+            } catch(e) { 
+                console.error("Erro na engine:", e);
+                wrapper.classList.remove('loading'); 
+            }
+        };
 
         window.manualResetLosses = async function() {
             try {
@@ -200,7 +175,6 @@
 
         async function fetchLatestSignals() {
             try {
-                // Chamada alinhada ao banco de dados log_oportunidades
                 const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
                 const container = document.getElementById('signal-container');
                 
@@ -221,52 +195,51 @@
                 });
 
                 container.innerHTML = filtered.map((item) => {
-    // Alinhado com os novos nomes do banco
-    const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
-    const isAuto = item.status_execucao === 'EXECUTADO';
-    const score = item.score_confianca || 0;
-    const noticiaBruta = item.motivo_fato_relevante;
-    
-    const newsDisplay = (noticiaBruta && noticiaBruta.length > 5) 
-        ? `"${noticiaBruta}"` 
-        : "Aguardando atualização de contexto via NewsAPI...";
+                    const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
+                    const isAuto = item.status_execucao === 'EXECUTADO';
+                    const score = item.score_confianca || 0;
+                    const noticiaBruta = item.motivo_fato_relevante;
+                    
+                    const newsDisplay = (noticiaBruta && noticiaBruta.length > 5) 
+                        ? `"${noticiaBruta}"` 
+                        : "Aguardando atualização de contexto via NewsAPI...";
 
-    let label = "ANÁLISE: GRÁFICO"; let labelColor = "text-gray-400";
-    if(score >= 8) { label = "GRÁFICO + NOTÍCIA"; labelColor = "text-blue-500"; }
-    else if(noticiaBruta && noticiaBruta.length > 10) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
+                    let label = "ANÁLISE: GRÁFICO"; let labelColor = "text-gray-400";
+                    if(score >= 8) { label = "GRÁFICO + NOTÍCIA"; labelColor = "text-blue-500"; }
+                    else if(noticiaBruta && noticiaBruta.length > 10) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
 
-    return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
-        <div class="flex justify-between items-start mb-1">
-            <div class="flex flex-col">
-                <div class="flex items-center gap-2">
-                    <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
-                    <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1">
-                        <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
-                        <span class="text-[10px]">9.2%</span>
-                    </div>
-                </div>
-                <span class="label-intel ${labelColor}">${label}</span>
-            </div>
-            <span class="text-[7px] px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-black">${score}/10 SCORE</span>
-        </div>
-        <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic">
-            <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white font-black">${item.preco_entrada}</span></div>
-            <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 font-black">${item.take_profit}</span></div>
-            <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 font-black">${item.stop_loss}</span></div>
-        </div>
-        <div class="mb-4">
-            <p class="text-[8px] text-blue-500 uppercase font-black italic mb-1 tracking-widest">Fato Relevante / News:</p>
-            <p class="text-[10px] text-gray-300 leading-tight italic font-black">${newsDisplay}</p>
-        </div>
-        <div class="flex justify-between items-center pt-3 border-t border-white/5">
-            <span class="text-[7px] text-gray-500 font-black uppercase">FONTE: ${item.fonte || 'ENGINE'}</span>
-            <button class="${isAuto ? 'bg-green-600' : 'bg-[#2563eb]'} text-white text-[9px] px-6 py-2 rounded-full font-black italic">
-                ${isAuto ? 'EXECUTADO (AUTO)' : 'EXECUTAR'}
-            </button>
-        </div>
-    </div>`;
-}).join('');
-            } catch(e) { console.error(e); }
+                    return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
+                        <div class="flex justify-between items-start mb-1">
+                            <div class="flex flex-col">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
+                                    <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1">
+                                        <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
+                                        <span class="text-[10px]">9.2%</span>
+                                    </div>
+                                </div>
+                                <span class="label-intel ${labelColor}">${label}</span>
+                            </div>
+                            <span class="text-[7px] px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-black">${score}/10 SCORE</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic">
+                            <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white font-black">${item.preco_entrada}</span></div>
+                            <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 font-black">${item.take_profit}</span></div>
+                            <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 font-black">${item.stop_loss}</span></div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="text-[8px] text-blue-500 uppercase font-black italic mb-1 tracking-widest">Fato Relevante / News:</p>
+                            <p class="text-[10px] text-gray-300 leading-tight italic font-black">${newsDisplay}</p>
+                        </div>
+                        <div class="flex justify-between items-center pt-3 border-t border-white/5">
+                            <span class="text-[7px] text-gray-500 font-black uppercase">FONTE: ${item.fonte || 'ENGINE'}</span>
+                            <button class="${isAuto ? 'bg-green-600' : 'bg-[#2563eb]'} text-white text-[9px] px-6 py-2 rounded-full font-black italic">
+                                ${isAuto ? 'EXECUTADO (AUTO)' : 'EXECUTAR'}
+                            </button>
+                        </div>
+                    </div>`;
+                }).join(''); lucide.createIcons();
+            } catch(e) {}
         }
 
         async function fetchBanca() {
@@ -288,13 +261,11 @@
                     document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
                     document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
                     document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
-                    
-                    // Alinhamento dos contadores do Header
                     document.getElementById('count-in').innerText = data.count_in || 0;
                     document.getElementById('count-win').innerText = data.count_win || 0;
                     document.getElementById('count-loss').innerText = data.count_loss || 0;
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) {}
         }
 
         async function updateMonitors() {
@@ -318,21 +289,14 @@
                 const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
                 const body = document.getElementById('history-body');
                 if(!data || !body) return;
-                // Mapeamento alinhado ao banco: ativo, resultado, valor_resultado
                 body.innerHTML = data.map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
-            } catch(e) { console.error(e); }
+            } catch(e) {}
         }
 
         async function init() {
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key, { auth: { persistSession: false } });
             lucide.createIcons(); await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
-            
-            // Realtime Subscription
-            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { 
-                fetchLatestSignals(); 
-                fetchBanca(); 
-            }).subscribe();
-            
+            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
             setInterval(updateMonitors, 30000);
         }
         window.onload = init;
