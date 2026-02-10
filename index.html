@@ -78,7 +78,14 @@
                     <i id="refresh-icon" data-lucide="refresh-cw" class="w-4 h-4 text-gray-400 transition-colors"></i>
                 </div>
             </div>
+
             <div id="signal-container" class="grid grid-cols-1 gap-4"></div>
+
+            <div id="pagination-wrapper" class="pt-4 pb-8 text-center hidden">
+                <button onclick="window.loadMoreSignals()" class="bg-[#161b22] border border-[#30363d] px-8 py-3 rounded-full text-[9px] font-black italic text-gray-400 hover:text-white transition-all uppercase tracking-widest">
+                    Carregar Mais Sinais
+                </button>
+            </div>
         </section>
 
         <section id="sec-wallet" class="content-section space-y-4">
@@ -97,7 +104,7 @@
             </div>
             <button onclick="window.manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] font-black italic text-gray-400 border border-[#30363d]">Resetar Trava de Segurança</button>
             
-            <div class="flex items-center gap-2 px-1"><i data-lucide="history" class="w-3 h-3 text-blue-500"></i><p class="text-[9px] uppercase font-black text-gray-400 italic">Histórico de Transações</p></div>
+            <div class="flex items-center gap-2 px-1 mt-4"><i data-lucide="history" class="w-3 h-3 text-blue-500"></i><p class="text-[9px] uppercase font-black text-gray-400 italic">Histórico de Transações</p></div>
             <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden">
                 <table class="w-full text-[10px] text-left">
                     <tbody id="history-body" class="divide-y divide-white/5"></tbody>
@@ -114,14 +121,21 @@
     <script>
         const CONFIG = { url: "https://puwjojeeuvtfzevkvzjd.supabase.co", key: "sb_publishable_o8XZmMMgw5l63TcPRdpmrA_T99K-eDX" };
         let sbClient, currentFilter = 'TUDO', isPrivate = false;
+        let currentLimit = 10;
 
         window.updateFilter = function(cat) { 
             currentFilter = cat; 
+            currentLimit = 10; // Reseta o limite ao trocar de aba
             document.querySelectorAll('.filter-btn').forEach(b => {
                 b.classList.remove('active');
                 if(b.getAttribute('data-cat') === cat) b.classList.add('active');
             });
             fetchLatestSignals(); 
+        };
+
+        window.loadMoreSignals = function() {
+            currentLimit += 10;
+            fetchLatestSignals();
         };
 
         window.switchTab = function(id) { 
@@ -152,13 +166,20 @@
 
         async function fetchLatestSignals() {
             const container = document.getElementById('signal-container');
-            const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
+            const paginationWrapper = document.getElementById('pagination-wrapper');
+            
+            // Busca 1 a mais para checar existência de próxima página
+            const { data } = await sbClient.from('log_oportunidades')
+                .select('*')
+                .order('created_at', { ascending: false });
             
             if(!data || data.length === 0) {
                 container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic">Aguardando sinais...</div>';
+                paginationWrapper.classList.add('hidden');
                 return;
             }
 
+            // Aplica filtro antes de paginar no front para manter integridade das abas
             const filtered = data.filter(i => {
                 const asset = (i.ativo || "").toUpperCase();
                 if(currentFilter === 'TUDO') return true;
@@ -168,7 +189,16 @@
                 return false;
             });
 
-            container.innerHTML = filtered.map(item => {
+            // Lógica de Paginação Visual
+            const paginated = filtered.slice(0, currentLimit);
+            
+            if (filtered.length > currentLimit) {
+                paginationWrapper.classList.remove('hidden');
+            } else {
+                paginationWrapper.classList.add('hidden');
+            }
+
+            container.innerHTML = paginated.map(item => {
                 const score = item.score_confianca || 0;
                 return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                     <div class="flex justify-between items-start">
