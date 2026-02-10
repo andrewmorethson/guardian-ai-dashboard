@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v4.2.5</title>
+    <title>Guardian AI v5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -125,7 +125,7 @@
 
         window.updateFilter = function(cat) { 
             currentFilter = cat; 
-            currentLimit = 10; // Reseta o limite ao trocar de aba
+            currentLimit = 10;
             document.querySelectorAll('.filter-btn').forEach(b => {
                 b.classList.remove('active');
                 if(b.getAttribute('data-cat') === cat) b.classList.add('active');
@@ -168,10 +168,7 @@
             const container = document.getElementById('signal-container');
             const paginationWrapper = document.getElementById('pagination-wrapper');
             
-            // Busca 1 a mais para checar existência de próxima página
-            const { data } = await sbClient.from('log_oportunidades')
-                .select('*')
-                .order('created_at', { ascending: false });
+            const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             
             if(!data || data.length === 0) {
                 container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic">Aguardando sinais...</div>';
@@ -179,7 +176,6 @@
                 return;
             }
 
-            // Aplica filtro antes de paginar no front para manter integridade das abas
             const filtered = data.filter(i => {
                 const asset = (i.ativo || "").toUpperCase();
                 if(currentFilter === 'TUDO') return true;
@@ -189,14 +185,8 @@
                 return false;
             });
 
-            // Lógica de Paginação Visual
             const paginated = filtered.slice(0, currentLimit);
-            
-            if (filtered.length > currentLimit) {
-                paginationWrapper.classList.remove('hidden');
-            } else {
-                paginationWrapper.classList.add('hidden');
-            }
+            paginationWrapper.classList.toggle('hidden', filtered.length <= currentLimit);
 
             container.innerHTML = paginated.map(item => {
                 const score = item.score_confianca || 0;
@@ -204,7 +194,7 @@
                     <div class="flex justify-between items-start">
                         <div class="flex flex-col">
                             <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
-                            <span class="text-[7px] uppercase font-black italic text-blue-500">ANÁLISE v4.2.5</span>
+                            <span class="text-[7px] uppercase font-black italic text-blue-500">ANÁLISE v5.0.1</span>
                         </div>
                         <span class="text-[7px] px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-black">${score}/10 SCORE</span>
                     </div>
@@ -215,7 +205,7 @@
                     </div>
                     <p class="text-[10px] text-gray-300 italic font-black leading-tight">"${item.motivo_fato_relevante}"</p>
                     <div class="flex justify-between items-center pt-3 mt-3 border-t border-white/5">
-                        <span class="text-[7px] text-gray-500 font-black uppercase tracking-widest">FONTE: ${item.fonte || 'ENGINE'}</span>
+                        <span class="text-[7px] text-gray-500 font-black uppercase tracking-widest">FONTE: ${item.fonte || 'REUTERS'}</span>
                         <button class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic uppercase">Executar</button>
                     </div>
                 </div>`;
