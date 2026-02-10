@@ -225,10 +225,15 @@
         async function fetchLatestSignals() {
             const container = document.getElementById('signal-container');
             const paginationWrapper = document.getElementById('pagination-wrapper');
-            const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
+            
+            // BUSCA: Ordenamos diretamente pelo score_confianca (Descendente)
+            const { data, error } = await sbClient.from('log_oportunidades')
+                .select('*')
+                .order('score_confianca', { ascending: false }) // MELHORES PRIMEIRO
+                .limit(currentLimit); // Mantém o seu sistema de paginação (10 em 10)
             
             if(!data || data.length === 0) {
-                container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic">Aguardando sinais...</div>';
+                container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic">Aguardando sinais de alto score...</div>';
                 paginationWrapper.classList.add('hidden');
                 return;
             }
@@ -237,23 +242,26 @@
                 const asset = (i.ativo || "").toUpperCase();
                 if(currentFilter === 'TUDO') return true;
                 if(currentFilter === 'CRIPTO') return asset.includes('USDT') || asset.includes('/') || asset.includes('BTC') || asset.includes('ETH');
-                if(currentFilter === 'USA') return asset.includes('$');
-                if(currentFilter === 'B3') return /^[A-Z]{4}[0-9]{1,2}$/.test(asset) || (!asset.includes('$') && !asset.includes('USDT'));
+                if(currentFilter === 'USA') return asset.includes('$') || ["AAPL", "TSLA", "NVDA", "AMZN", "META"].includes(asset);
+                if(currentFilter === 'B3') return /^[A-Z]{4}[0-9]{1,2}$/.test(asset) || ["PETR4", "VALE3", "MGLU3"].includes(asset);
                 return false;
             });
 
-            const paginated = filtered.slice(0, currentLimit);
-            paginationWrapper.classList.toggle('hidden', filtered.length <= currentLimit);
+            // Oculta o botão se já carregamos todos os Top Scores
+            paginationWrapper.classList.toggle('hidden', filtered.length < currentLimit);
 
-            container.innerHTML = paginated.map(item => {
+            container.innerHTML = filtered.map(item => {
                 const score = item.score_confianca || 0;
+                // Badge de cor baseada no Score
+                const scoreColor = score >= 8 ? 'text-green-400 bg-green-500/10' : (score >= 5 ? 'text-yellow-400 bg-yellow-500/10' : 'text-red-400 bg-red-500/10');
+                
                 return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                     <div class="flex justify-between items-start">
                         <div class="flex flex-col">
                             <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
-                            <span class="text-[7px] uppercase font-black italic text-blue-500 tracking-widest">ANALYSIS v5.1.0</span>
+                            <span class="text-[7px] uppercase font-black italic text-blue-500 tracking-widest">TOP PERFORMANCE ANALYSIS</span>
                         </div>
-                        <span class="text-[7px] px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-black">${score}/10 SCORE</span>
+                        <span class="text-[7px] px-2 py-1 rounded ${scoreColor} font-black">${score}/10 SCORE</span>
                     </div>
                     <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic text-[9px]">
                         <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase font-black">ENTRADA</span>${item.preco_entrada}</div>
