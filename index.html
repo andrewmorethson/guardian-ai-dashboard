@@ -126,29 +126,57 @@
         };
 
         window.triggerGuardianEngine = async function() {
-            const wrapper = document.getElementById('refresh-wrapper');
-            const icon = document.getElementById('refresh-icon');
-            if(wrapper.classList.contains('loading')) return;
-            wrapper.classList.add('loading');
-            try {
-                // Chamada via Supabase SDK Invoke para garantir CORS e Headers
-                const { data, error } = await sbClient.functions.invoke('guardian-engine', {
-                    body: { symbol: 'BTCUSDT', force_refresh: true }
-                });
+  const wrapper = document.getElementById('refresh-wrapper');
+  const icon = document.getElementById('refresh-icon');
+  if (!wrapper || wrapper.classList.contains('loading')) return;
 
-                if (error) throw error;
+  wrapper.classList.add('loading');
 
-                if(data.status === "success" || data.status === "aborted") {
-                    wrapper.classList.remove('loading'); wrapper.classList.add('success');
-                    icon.setAttribute('data-lucide', 'check'); lucide.createIcons();
-                    setTimeout(() => {
-                        wrapper.classList.remove('success');
-                        icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons();
-                        fetchLatestSignals(); fetchBanca();
-                    }, 1500);
-                } else { wrapper.classList.remove('loading'); }
-            } catch(e) { wrapper.classList.remove('loading'); console.error(e); }
-        };
+  try {
+    const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": CONFIG.key,
+        "Authorization": `Bearer ${CONFIG.key}`,
+      },
+      body: JSON.stringify({ symbol: "BTCUSDT" }),
+    });
+
+    if (!response.ok) {
+      console.error("Erro HTTP:", response.status);
+      wrapper.classList.remove('loading');
+      return;
+    }
+
+    const data = await response.json();
+
+    if (data.status === "success" || data.status === "aborted") {
+      wrapper.classList.remove('loading');
+      wrapper.classList.add('success');
+
+      icon.setAttribute('data-lucide', 'check');
+      icon.classList.add('text-white');
+      lucide.createIcons();
+
+      setTimeout(() => {
+        wrapper.classList.remove('success');
+        icon.setAttribute('data-lucide', 'refresh-cw');
+        icon.classList.remove('text-white');
+        lucide.createIcons();
+        fetchLatestSignals();
+        fetchBanca();
+      }, 1500);
+    } else {
+      wrapper.classList.remove('loading');
+    }
+
+  } catch (err) {
+    console.error("Falha ao chamar Guardian Engine:", err);
+    wrapper.classList.remove('loading');
+  }
+};
+
 
         window.manualResetLosses = async function() {
             try {
