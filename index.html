@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v5.3.0</title>
+    <title>Guardian AI v5.2.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -112,8 +112,12 @@
             w.classList.add('loading');
             try {
                 await sb.functions.invoke('analisador-de-noticias', { body: { symbol: 'BTCUSDT' } });
-                w.classList.replace('loading', 'bg-green-600'); i.setAttribute('data-lucide', 'check'); lucide.createIcons();
-                setTimeout(() => { w.classList.remove('bg-green-600'); i.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons(); fetchLatestSignals(); fetchBanca(); }, 1500);
+                w.classList.remove('loading'); w.classList.add('bg-green-600');
+                i.setAttribute('data-lucide', 'check'); lucide.createIcons();
+                setTimeout(() => { 
+                    w.classList.remove('bg-green-600'); i.setAttribute('data-lucide', 'refresh-cw'); 
+                    lucide.createIcons(); fetchLatestSignals(); fetchBanca();
+                }, 1500);
             } catch(e) { w.classList.remove('loading'); }
         };
 
@@ -132,14 +136,26 @@
             });
 
             container.innerHTML = filtered.slice(0, currentLimit).map(item => {
-                const date = new Date(item.created_at);
-                const badge = `${date.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})} ${date.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}`;
+                const date = new Date(item.created_at), agora = new Date();
+                const diffMs = agora.getTime() - date.getTime();
+                const diffMin = Math.floor(diffMs / 60000);
+                const diffHoras = Math.floor(diffMin / 60);
+                const isToday = date.toDateString() === agora.toDateString();
                 
+                let timeBadge;
+                if(isToday) {
+                    if(diffMin < 1) timeBadge = "AGORA";
+                    else if(diffMin < 60) timeBadge = `HÁ ${diffMin} MIN`;
+                    else timeBadge = `HÁ ${diffHoras} HORAS`;
+                } else {
+                    timeBadge = date.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+                }
+
                 return `
-                <div class="bg-[#161b22] border border-[#2563eb] p-5 rounded-[24px] relative overflow-hidden">
-                    <div class="absolute top-0 right-0 bg-[#2563eb] px-3 py-1 rounded-bl-xl z-10"><span class="text-[7px] text-white font-black whitespace-nowrap">${badge}</span></div>
-                    <div class="flex justify-between items-start mt-4">
-                        <div class="flex flex-col"><span class="text-2xl text-white font-black">${item.ativo}</span><span class="text-[7px] text-blue-500 uppercase tracking-widest font-black">ALPHA ENGINE</span></div>
+                <div class="bg-[#161b22] border ${isToday && diffMin < 60 ? 'border-blue-500/50' : 'border-[#30363d]'} p-5 rounded-[24px] relative overflow-hidden">
+                    <div class="absolute top-0 right-0 ${isToday && diffMin < 60 ? 'bg-blue-600' : 'bg-[#30363d]'} px-3 py-1 rounded-bl-xl"><span class="text-[7px] text-white font-black">${timeBadge}</span></div>
+                    <div class="flex justify-between items-start mt-2">
+                        <div class="flex flex-col"><span class="text-2xl text-white font-black">${item.ativo}</span><span class="text-[7px] text-blue-500 uppercase font-black">ALPHA ENGINE</span></div>
                         <span class="text-[7px] px-2 py-1 rounded ${item.score_confianca >= 8 ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'} font-black">${item.score_confianca}/10 SCORE</span>
                     </div>
                     <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl text-center font-black italic text-[9px]">
@@ -191,4 +207,4 @@
         };
     </script>
 </body>
-</html> 
+</html>
