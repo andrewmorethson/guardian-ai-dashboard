@@ -184,47 +184,43 @@
         };
 
         window.triggerGuardianEngine = async function() {
-    const wrapper = document.getElementById('refresh-wrapper');
-    const icon = document.getElementById('refresh-icon');
-    
-    // 1. Trava de segurança contra múltiplos cliques (Spam)
-    if(wrapper.classList.contains('loading') || wrapper.classList.contains('success')) return;
-    
-    // 2. Início do Carregamento (Visual)
-    wrapper.classList.add('loading');
-    
-    try {
-        // 3. Chamada da Engine
-        const { data, error } = await sbClient.functions.invoke('analisador-de-noticias', { 
-            body: { symbol: 'BTCUSDT' } 
-        });
-        
-        if(error) throw error;
-
-        // 4. Feedback de Sucesso (Checkmark)
-        wrapper.classList.remove('loading');
-        wrapper.classList.add('success');
-        icon.setAttribute('data-lucide', 'check');
-        lucide.createIcons();
-
-    } catch(e) {
-        console.error("Erro no Reload:", e);
-        // Feedback de erro visual (breve piscada vermelha ou apenas reset)
-        wrapper.classList.add('border-red-500');
-        setTimeout(() => wrapper.classList.remove('border-red-500'), 500);
-    } finally {
-        // 5. Reset Definitivo para permitir novo clique
-        setTimeout(() => {
-            wrapper.classList.remove('loading', 'success');
-            icon.setAttribute('data-lucide', 'refresh-cw');
-            lucide.createIcons();
+            const wrapper = document.getElementById('refresh-wrapper');
+            const icon = document.getElementById('refresh-icon');
             
-            // Atualiza os dados na tela
-            fetchLatestSignals(); 
-            fetchBanca();
-        }, 1500); // Tempo do checkmark na tela
-    }
-};
+            // Evita múltiplos cliques simultâneos
+            if(wrapper.classList.contains('loading') || wrapper.classList.contains('success')) return;
+            
+            // 1. Início: Adiciona classe de rotação e feedback visual
+            wrapper.classList.add('loading');
+            lucide.createIcons(); // Garante a renderização do ícone atual
+            
+            try {
+                // Chamada para a Edge Function
+                await sbClient.functions.invoke('analisador-de-noticias', { 
+                    body: { symbol: 'BTCUSDT' } 
+                });
+                
+                // 2. Sucesso: Troca para o check (✓) por 1.5s
+                wrapper.classList.remove('loading');
+                wrapper.classList.add('success');
+                icon.setAttribute('data-lucide', 'check');
+                lucide.createIcons();
+
+            } catch(e) {
+                console.error("Erro na atualização:", e);
+            } finally {
+                // 3. Reset Final: Volta obrigatoriamente para o ícone de reload original
+                setTimeout(() => {
+                    wrapper.classList.remove('loading', 'success');
+                    icon.setAttribute('data-lucide', 'refresh-cw');
+                    lucide.createIcons();
+                    
+                    // Atualiza os dados do dashboard
+                    fetchLatestSignals(); 
+                    fetchBanca();
+                }, 1500); 
+            }
+        };
 
         async function fetchLatestSignals() {
             const container = document.getElementById('signal-container');
