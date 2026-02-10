@@ -14,7 +14,6 @@
         main { padding: 16px; }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
         
-        /* FILTROS COM CORES ESPECÍFICAS RESTAURADOS */
         .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; white-space: nowrap; }
         .filter-btn.active[data-cat="TUDO"] { background: #2563eb; border-color: #2563eb; color: white; }
         .filter-btn.active[data-cat="USA"] { background: #ef4444; border-color: #ef4444; color: white; }
@@ -132,12 +131,13 @@
             if(wrapper.classList.contains('loading')) return;
             wrapper.classList.add('loading');
             try {
-                const response = await fetch(`${CONFIG.url}/functions/v1/guardian-engine`, { 
-                    method: 'POST', 
-                    headers: { 'Authorization': `Bearer ${CONFIG.key}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ force_refresh: true })
+                // Chamada via Supabase SDK Invoke para garantir CORS e Headers
+                const { data, error } = await sbClient.functions.invoke('guardian-engine', {
+                    body: { symbol: 'BTCUSDT', force_refresh: true }
                 });
-                const data = await response.json();
+
+                if (error) throw error;
+
                 if(data.status === "success" || data.status === "aborted") {
                     wrapper.classList.remove('loading'); wrapper.classList.add('success');
                     icon.setAttribute('data-lucide', 'check'); lucide.createIcons();
@@ -147,7 +147,7 @@
                         fetchLatestSignals(); fetchBanca();
                     }, 1500);
                 } else { wrapper.classList.remove('loading'); }
-            } catch(e) { wrapper.classList.remove('loading'); }
+            } catch(e) { wrapper.classList.remove('loading'); console.error(e); }
         };
 
         window.manualResetLosses = async function() {
@@ -172,10 +172,10 @@
 
         async function fetchLatestSignals() {
             try {
+                // Chamada alinhada ao banco de dados log_oportunidades
                 const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
                 const container = document.getElementById('signal-container');
                 
-                // CARD VAZIO DE PLACEHOLDER RESTAURADO
                 if(!data || data.length === 0) { 
                     container.innerHTML = `<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d]">
                         <p class="text-[9px] text-gray-500 uppercase tracking-widest font-black italic">Procurando notícias relevantes e analisando mercado...</p>
@@ -196,15 +196,13 @@
                     const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
                     const isAuto = item.status_execucao === 'EXECUTADO';
                     const score = item.score_confianca || 0;
-                    const noticiaBruta = item.motivo_fato_relevante;
-                    
-                    const newsDisplay = (noticiaBruta && noticiaBruta.length > 5) 
-                        ? `"${noticiaBruta}"` 
+                    const newsDisplay = (item.motivo_fato_relevante && item.motivo_fato_relevante.length > 5) 
+                        ? `"${item.motivo_fato_relevante}"` 
                         : "Aguardando atualização de contexto via NewsAPI...";
 
                     let label = "ANÁLISE: GRÁFICO"; let labelColor = "text-gray-400";
                     if(score >= 8) { label = "GRÁFICO + NOTÍCIA"; labelColor = "text-blue-500"; }
-                    else if(noticiaBruta && noticiaBruta.length > 10) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
+                    else if(item.motivo_fato_relevante && item.motivo_fato_relevante.length > 10) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
 
                     return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                         <div class="flex justify-between items-start mb-1">
@@ -237,7 +235,7 @@
                         </div>
                     </div>`;
                 }).join(''); lucide.createIcons();
-            } catch(e) {}
+            } catch(e) { console.error(e); }
         }
 
         async function fetchBanca() {
@@ -259,8 +257,13 @@
                     document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
                     document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
                     document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
+                    
+                    // Alinhamento dos contadores do Header
+                    document.getElementById('count-in').innerText = data.count_in || 0;
+                    document.getElementById('count-win').innerText = data.count_win || 0;
+                    document.getElementById('count-loss').innerText = data.count_loss || 0;
                 }
-            } catch(e) {}
+            } catch(e) { console.error(e); }
         }
 
         async function updateMonitors() {
@@ -284,14 +287,21 @@
                 const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
                 const body = document.getElementById('history-body');
                 if(!data || !body) return;
+                // Mapeamento alinhado ao banco: ativo, resultado, valor_resultado
                 body.innerHTML = data.map(o => `<tr class="text-white font-black italic border-b border-white/5"><td class="p-4 uppercase">${o.ativo}</td><td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td><td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td></tr>`).join('');
-            } catch(e) {}
+            } catch(e) { console.error(e); }
         }
 
         async function init() {
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key, { auth: { persistSession: false } });
             lucide.createIcons(); await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
-            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
+            
+            // Realtime Subscription
+            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { 
+                fetchLatestSignals(); 
+                fetchBanca(); 
+            }).subscribe();
+            
             setInterval(updateMonitors, 30000);
         }
         window.onload = init;
