@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v5.2.7</title>
+    <title>Guardian AI v5.2.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -15,6 +15,7 @@
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
         .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; text-transform: uppercase; cursor: pointer; }
         .filter-btn.active { background: #2563eb; border-color: #2563eb; color: white; }
+        /* FIX RELOAD ANIMATION */
         .refresh-wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: #161b22; border: 1px solid #30363d; cursor: pointer; }
         .refresh-wrapper.loading i { animation: spin 1s linear infinite; color: #2563eb; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -71,10 +72,10 @@
             <div class="bg-[#161b22] border border-[#30363d] rounded-[24px] p-5">
                 <h2 id="wallet-balance" class="text-4xl text-white italic tracking-tighter privacy-toggle mb-6">R$ 0.00</h2>
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="card-inner p-3 flex flex-col"><span class="text-[7px] text-gray-500 uppercase font-black">Bruto</span><span id="w-bruto" class="text-xs privacy-toggle">R$ 0.00</span></div>
-                    <div class="card-inner p-3 flex flex-col border-l-2 border-green-500"><span class="text-[7px] text-green-500 uppercase font-black">Líquido</span><span id="w-liquido" class="text-xs privacy-toggle">R$ 0.00</span></div>
-                    <div class="card-inner p-3 flex flex-col border-l-2 border-yellow-500"><span class="text-[7px] text-yellow-500 uppercase font-black">Reinvestir</span><span id="w-reinvest" class="text-xs privacy-toggle">R$ 0.00</span></div>
-                    <div class="card-inner p-3 flex flex-col border-l-2 border-purple-500"><span class="text-[7px] text-purple-500 uppercase font-black">Reserva</span><span id="w-reserve" class="text-xs privacy-toggle">R$ 0.00</span></div>
+                    <div class="card-inner p-3 flex flex-col"><span class="text-[7px] text-gray-500 uppercase font-black tracking-widest">Bruto</span><span id="w-bruto" class="text-xs privacy-toggle">R$ 0.00</span></div>
+                    <div class="card-inner p-3 flex flex-col border-l-2 border-green-500"><span class="text-[7px] text-green-500 uppercase font-black tracking-widest">Líquido</span><span id="w-liquido" class="text-xs privacy-toggle">R$ 0.00</span></div>
+                    <div class="card-inner p-3 flex flex-col border-l-2 border-yellow-500"><span class="text-[7px] text-yellow-500 uppercase font-black tracking-widest">Reinvestir</span><span id="w-reinvest" class="text-xs privacy-toggle">R$ 0.00</span></div>
+                    <div class="card-inner p-3 flex flex-col border-l-2 border-purple-500"><span class="text-[7px] text-purple-500 uppercase font-black tracking-widest">Reserva</span><span id="w-reserve" class="text-xs privacy-toggle">R$ 0.00</span></div>
                 </div>
             </div>
             <button class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] font-black uppercase italic text-gray-500 border border-[#30363d] opacity-50 cursor-not-allowed">Trava de Segurança (Reset)</button>
@@ -112,11 +113,14 @@
             w.classList.add('loading');
             try {
                 await sb.functions.invoke('analisador-de-noticias', { body: { symbol: 'BTCUSDT' } });
-                w.classList.remove('loading'); w.classList.add('bg-green-600');
+                w.classList.remove('loading');
+                w.classList.add('bg-green-600');
                 i.setAttribute('data-lucide', 'check'); lucide.createIcons();
                 setTimeout(() => { 
-                    w.classList.remove('bg-green-600'); i.setAttribute('data-lucide', 'refresh-cw'); 
-                    lucide.createIcons(); fetchLatestSignals(); fetchBanca();
+                    w.classList.remove('bg-green-600'); 
+                    i.setAttribute('data-lucide', 'refresh-cw'); 
+                    lucide.createIcons(); 
+                    fetchLatestSignals(); 
                 }, 1500);
             } catch(e) { w.classList.remove('loading'); }
         };
@@ -137,25 +141,23 @@
 
             container.innerHTML = filtered.slice(0, currentLimit).map(item => {
                 const date = new Date(item.created_at), agora = new Date();
-                const diffMs = agora.getTime() - date.getTime();
-                const diffMin = Math.floor(diffMs / 60000);
-                const diffHoras = Math.floor(diffMin / 60);
+                const diffMin = Math.floor(Math.abs(agora - date) / 60000);
                 const isToday = date.toDateString() === agora.toDateString();
                 
                 let timeBadge;
                 if(isToday) {
                     if(diffMin < 1) timeBadge = "AGORA";
                     else if(diffMin < 60) timeBadge = `HÁ ${diffMin} MIN`;
-                    else timeBadge = `HÁ ${diffHoras} HORAS`;
+                    else timeBadge = `HÁ ${Math.floor(diffMin/60)} HORAS`;
                 } else {
                     timeBadge = date.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
                 }
 
                 return `
                 <div class="bg-[#161b22] border ${isToday && diffMin < 60 ? 'border-blue-500/50' : 'border-[#30363d]'} p-5 rounded-[24px] relative overflow-hidden">
-                    <div class="absolute top-0 right-0 ${isToday && diffMin < 60 ? 'bg-blue-600' : 'bg-[#30363d]'} px-3 py-1 rounded-bl-xl"><span class="text-[7px] text-white font-black">${timeBadge}</span></div>
+                    <div class="absolute top-0 right-0 ${isToday && diffMin < 60 ? 'bg-blue-600' : 'bg-[#30363d]'} px-3 py-1 rounded-bl-xl min-w-[70px] text-center"><span class="text-[7px] text-white font-black whitespace-nowrap">${timeBadge}</span></div>
                     <div class="flex justify-between items-start mt-2">
-                        <div class="flex flex-col"><span class="text-2xl text-white font-black">${item.ativo}</span><span class="text-[7px] text-blue-500 uppercase font-black">ALPHA ENGINE</span></div>
+                        <div class="flex flex-col"><span class="text-2xl text-white font-black">${item.ativo}</span><span class="text-[7px] text-blue-500 uppercase tracking-widest font-black">ALPHA ENGINE</span></div>
                         <span class="text-[7px] px-2 py-1 rounded ${item.score_confianca >= 8 ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'} font-black">${item.score_confianca}/10 SCORE</span>
                     </div>
                     <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl text-center font-black italic text-[9px]">
