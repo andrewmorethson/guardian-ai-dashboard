@@ -96,7 +96,13 @@
                 </div>
             </div>
             <button onclick="window.manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] font-black italic text-gray-400 border border-[#30363d]">Resetar Trava de Segurança</button>
-            <div id="history-body" class="bg-[#161b22] rounded-2xl overflow-hidden divide-y divide-white/5 p-4 space-y-2"></div>
+            
+            <div class="flex items-center gap-2 px-1"><i data-lucide="history" class="w-3 h-3 text-blue-500"></i><p class="text-[9px] uppercase font-black text-gray-400 italic">Histórico de Transações</p></div>
+            <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden">
+                <table class="w-full text-[10px] text-left">
+                    <tbody id="history-body" class="divide-y divide-white/5"></tbody>
+                </table>
+            </div>
         </section>
     </main>
 
@@ -123,6 +129,7 @@
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             document.getElementById(`sec-${id}`).classList.add('active'); 
             document.getElementById(`nav-${id}`).classList.add('active');
+            if(id === 'wallet') fetchHistoryTable();
             lucide.createIcons();
         };
 
@@ -145,7 +152,7 @@
 
         async function fetchLatestSignals() {
             const container = document.getElementById('signal-container');
-            const { data, error } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
+            const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             
             if(!data || data.length === 0) {
                 container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic">Aguardando sinais...</div>';
@@ -157,17 +164,11 @@
                 if(currentFilter === 'TUDO') return true;
                 if(currentFilter === 'CRIPTO') return asset.includes('USDT') || asset.includes('/') || asset.includes('BTC') || asset.includes('ETH');
                 if(currentFilter === 'USA') return asset.includes('$');
-                if(currentFilter === 'B3') return /^[A-Z]{4}[0-9]{1,2}$/.test(asset) || !asset.includes('$') && !asset.includes('USDT');
+                if(currentFilter === 'B3') return /^[A-Z]{4}[0-9]{1,2}$/.test(asset) || (!asset.includes('$') && !asset.includes('USDT'));
                 return false;
             });
 
-            if(filtered.length === 0) {
-                container.innerHTML = `<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic">Sem sinais em ${currentFilter}</div>`;
-                return;
-            }
-
             container.innerHTML = filtered.map(item => {
-                const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
                 const score = item.score_confianca || 0;
                 return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
                     <div class="flex justify-between items-start">
@@ -192,6 +193,22 @@
             lucide.createIcons();
         }
 
+        async function fetchHistoryTable() {
+            const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
+            const body = document.getElementById('history-body');
+            if(!data || !body) return;
+            body.innerHTML = data.map(o => `
+                <tr class="text-white font-black italic border-b border-white/5">
+                    <td class="p-4 uppercase">${o.ativo}</td>
+                    <td class="p-4 text-center">
+                        <span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">
+                            ${o.resultado}
+                        </span>
+                    </td>
+                    <td class="p-4 text-right">R$ ${Number(o.valor_resultado).toFixed(2)}</td>
+                </tr>`).join('');
+        }
+
         async function fetchBanca() {
             const { data } = await sbClient.from('perfil_usuario').select('*').limit(1).maybeSingle();
             if(data) {
@@ -212,8 +229,14 @@
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
             lucide.createIcons();
             await Promise.all([fetchLatestSignals(), fetchBanca()]);
-            sbClient.channel('realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'log_oportunidades' }, () => fetchLatestSignals()).subscribe();
+            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
         }
+
+        window.togglePrivacy = function() { isPrivate = !isPrivate; applyPrivacyUI(); };
+        function applyPrivacyUI() { 
+            document.querySelectorAll('.privacy-toggle').forEach(el => isPrivate ? el.classList.add('privacy-hidden') : el.classList.remove('privacy-hidden'));
+        }
+
         window.onload = init;
     </script>
 </body>
