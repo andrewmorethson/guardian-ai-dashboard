@@ -171,15 +171,10 @@
             wrapper.classList.add('loading');
             try {
                 await sbClient.functions.invoke('analisador-de-noticias', { body: { symbol: randomSymbol } });
-                
                 wrapper.classList.remove('loading');
                 wrapper.classList.add('success');
                 icon.setAttribute('data-lucide', 'check');
                 lucide.createIcons();
-
-                await fetchLatestSignals(); 
-                await fetchBanca();
-                
             } catch(e) {
                 console.error(e);
                 wrapper.classList.remove('loading');
@@ -188,6 +183,8 @@
                     wrapper.classList.remove('success', 'loading');
                     icon.setAttribute('data-lucide', 'refresh-cw');
                     lucide.createIcons();
+                    fetchLatestSignals(); 
+                    fetchBanca();
                 }, 1500);
             }
         };
@@ -196,9 +193,10 @@
             const container = document.getElementById('signal-container');
             const paginationWrapper = document.getElementById('pagination-wrapper');
             
+            // LÓGICA V5.2: Ordenar por Score (Top 1 a 10)
             const { data } = await sbClient.from('log_oportunidades')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('score_confianca', { ascending: false });
             
             if(!data || data.length === 0) {
                 container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic tracking-widest">Searching Best Alpha...</div>';
