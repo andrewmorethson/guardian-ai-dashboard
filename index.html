@@ -197,7 +197,7 @@
             
             const { data } = await sbClient.from('log_oportunidades')
                 .select('*')
-                .order('created_at', { ascending: false }); // Ordem cronológica por recência
+                .order('created_at', { ascending: false });
             
             if(!data || data.length === 0) {
                 container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic tracking-widest">Searching Best Alpha...</div>';
