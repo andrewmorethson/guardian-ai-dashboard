@@ -13,7 +13,7 @@
         header { position: sticky; top: 0; z-index: 50; background-color: var(--bg-main); padding: 12px 16px; border-bottom: 1px solid var(--border-low); display: flex; justify-content: space-between; align-items: center; }
         main { padding: 16px; }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
-        .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; white-space: nowrap; }
+        .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
         .filter-btn.active[data-cat="TUDO"] { background: #2563eb; border-color: #2563eb; color: white; }
         .filter-btn.active[data-cat="USA"] { background: #ef4444; border-color: #ef4444; color: white; }
         .filter-btn.active[data-cat="B3"] { background: #22c55e; border-color: #22c55e; color: white; }
@@ -96,7 +96,7 @@
                 </div>
             </div>
             <button onclick="window.manualResetLosses()" class="w-full bg-[#161b22] py-4 rounded-xl text-[8px] font-black italic text-gray-400 border border-[#30363d]">Resetar Trava de Segurança</button>
-            <div id="history-body" class="bg-[#161b22] rounded-2xl overflow-hidden divide-y divide-white/5"></div>
+            <div id="history-body" class="bg-[#161b22] rounded-2xl overflow-hidden divide-y divide-white/5 p-4 space-y-2"></div>
         </section>
     </main>
 
@@ -118,6 +118,14 @@
             fetchLatestSignals(); 
         };
 
+        window.switchTab = function(id) { 
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(`sec-${id}`).classList.add('active'); 
+            document.getElementById(`nav-${id}`).classList.add('active');
+            lucide.createIcons();
+        };
+
         window.triggerGuardianEngine = async function() {
             const wrapper = document.getElementById('refresh-wrapper');
             const icon = document.getElementById('refresh-icon');
@@ -132,14 +140,15 @@
                     wrapper.classList.remove('success'); icon.setAttribute('data-lucide', 'refresh-cw'); 
                     lucide.createIcons(); fetchLatestSignals(); fetchBanca();
                 }, 1500);
-            } catch(e) { wrapper.classList.remove('loading'); console.error(e); }
+            } catch(e) { wrapper.classList.remove('loading'); }
         };
 
         async function fetchLatestSignals() {
-            const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
             const container = document.getElementById('signal-container');
+            const { data, error } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
+            
             if(!data || data.length === 0) {
-                container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic">Procurando notícias...</div>';
+                container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic">Aguardando sinais...</div>';
                 return;
             }
 
@@ -148,12 +157,12 @@
                 if(currentFilter === 'TUDO') return true;
                 if(currentFilter === 'CRIPTO') return asset.includes('USDT') || asset.includes('/') || asset.includes('BTC') || asset.includes('ETH');
                 if(currentFilter === 'USA') return asset.includes('$');
-                if(currentFilter === 'B3') return /^[A-Z]{4}[0-9]{1,2}$/.test(asset);
+                if(currentFilter === 'B3') return /^[A-Z]{4}[0-9]{1,2}$/.test(asset) || !asset.includes('$') && !asset.includes('USDT');
                 return false;
             });
 
             if(filtered.length === 0) {
-                container.innerHTML = `<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic">Nenhum sinal em ${currentFilter}</div>`;
+                container.innerHTML = `<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic">Sem sinais em ${currentFilter}</div>`;
                 return;
             }
 
@@ -169,14 +178,14 @@
                         <span class="text-[7px] px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-black">${score}/10 SCORE</span>
                     </div>
                     <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic text-[9px]">
-                        <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">ENTRADA</span>${item.preco_entrada}</div>
-                        <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">ALVO</span>${item.take_profit}</div>
-                        <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">STOP</span>${item.stop_loss}</div>
+                        <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase font-black">ENTRADA</span>${item.preco_entrada}</div>
+                        <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase font-black">ALVO</span>${item.take_profit}</div>
+                        <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase font-black">STOP</span>${item.stop_loss}</div>
                     </div>
                     <p class="text-[10px] text-gray-300 italic font-black leading-tight">"${item.motivo_fato_relevante}"</p>
                     <div class="flex justify-between items-center pt-3 mt-3 border-t border-white/5">
-                        <span class="text-[7px] text-gray-500 font-black uppercase">FONTE: ${item.fonte || 'ENGINE'}</span>
-                        <button class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic">EXECUTAR</button>
+                        <span class="text-[7px] text-gray-500 font-black uppercase tracking-widest">FONTE: ${item.fonte || 'ENGINE'}</span>
+                        <button class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic uppercase">Executar</button>
                     </div>
                 </div>`;
             }).join('');
@@ -186,18 +195,16 @@
         async function fetchBanca() {
             const { data } = await sbClient.from('perfil_usuario').select('*').limit(1).maybeSingle();
             if(data) {
-                document.getElementById('home-balance').innerText = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
+                const bal = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
+                document.getElementById('home-balance').innerText = bal;
+                document.getElementById('wallet-balance').innerText = bal;
                 document.getElementById('count-in').innerText = data.count_in || 0;
                 document.getElementById('count-win').innerText = data.count_win || 0;
                 document.getElementById('count-loss').innerText = data.count_loss || 0;
-                // Atualização Carteira
-                if(document.getElementById('wallet-balance')) {
-                    document.getElementById('wallet-balance').innerText = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
-                    document.getElementById('w-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
-                    document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
-                    document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
-                    document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
-                }
+                document.getElementById('w-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
+                document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
+                document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
+                document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
             }
         }
 
@@ -205,22 +212,8 @@
             sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
             lucide.createIcons();
             await Promise.all([fetchLatestSignals(), fetchBanca()]);
-            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
+            sbClient.channel('realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'log_oportunidades' }, () => fetchLatestSignals()).subscribe();
         }
-
-        window.switchTab = function(id) { 
-            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            document.getElementById(`sec-${id}`).classList.add('active'); 
-            document.getElementById(`nav-${id}`).classList.add('active');
-            if(id === 'wallet') fetchHistoryTable();
-        };
-
-        window.togglePrivacy = function() { isPrivate = !isPrivate; applyPrivacyUI(); };
-        function applyPrivacyUI() { 
-            document.querySelectorAll('.privacy-toggle').forEach(el => isPrivate ? el.classList.add('privacy-hidden') : el.classList.remove('privacy-hidden'));
-        }
-
         window.onload = init;
     </script>
 </body>
