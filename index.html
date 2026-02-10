@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v5.2.9</title>
+    <title>Guardian AI v5.3.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -136,9 +136,9 @@
                 const badge = `${date.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})} ${date.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}`;
                 
                 return `
-                <div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px] relative overflow-hidden">
-                    <div class="absolute top-0 right-0 bg-[#30363d] px-3 py-1 rounded-bl-xl"><span class="text-[7px] text-white font-black whitespace-nowrap">${badge}</span></div>
-                    <div class="flex justify-between items-start mt-2">
+                <div class="bg-[#161b22] border border-[#2563eb] p-5 rounded-[24px] relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-[#2563eb] px-3 py-1 rounded-bl-xl z-10"><span class="text-[7px] text-white font-black whitespace-nowrap">${badge}</span></div>
+                    <div class="flex justify-between items-start mt-4">
                         <div class="flex flex-col"><span class="text-2xl text-white font-black">${item.ativo}</span><span class="text-[7px] text-blue-500 uppercase tracking-widest font-black">ALPHA ENGINE</span></div>
                         <span class="text-[7px] px-2 py-1 rounded ${item.score_confianca >= 8 ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'} font-black">${item.score_confianca}/10 SCORE</span>
                     </div>
