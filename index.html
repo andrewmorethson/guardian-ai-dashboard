@@ -193,48 +193,51 @@
                 });
 
                 container.innerHTML = filtered.map((item) => {
-                    const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
-                    const isAuto = item.status_execucao === 'EXECUTADO';
-                    const score = item.score_confianca || 0;
-                    const newsDisplay = (item.motivo_fato_relevante && item.motivo_fato_relevante.length > 5) 
-                        ? `"${item.motivo_fato_relevante}"` 
-                        : "Aguardando atualização de contexto via NewsAPI...";
+    // Alinhado com os novos nomes do banco
+    const isUp = parseFloat(item.take_profit) > parseFloat(item.preco_entrada);
+    const isAuto = item.status_execucao === 'EXECUTADO';
+    const score = item.score_confianca || 0;
+    const noticiaBruta = item.motivo_fato_relevante;
+    
+    const newsDisplay = (noticiaBruta && noticiaBruta.length > 5) 
+        ? `"${noticiaBruta}"` 
+        : "Aguardando atualização de contexto via NewsAPI...";
 
-                    let label = "ANÁLISE: GRÁFICO"; let labelColor = "text-gray-400";
-                    if(score >= 8) { label = "GRÁFICO + NOTÍCIA"; labelColor = "text-blue-500"; }
-                    else if(item.motivo_fato_relevante && item.motivo_fato_relevante.length > 10) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
+    let label = "ANÁLISE: GRÁFICO"; let labelColor = "text-gray-400";
+    if(score >= 8) { label = "GRÁFICO + NOTÍCIA"; labelColor = "text-blue-500"; }
+    else if(noticiaBruta && noticiaBruta.length > 10) { label = "IMPACTO: NOTÍCIA"; labelColor = "text-orange-400"; }
 
-                    return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
-                        <div class="flex justify-between items-start mb-1">
-                            <div class="flex flex-col">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
-                                    <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1">
-                                        <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
-                                        <span class="text-[10px]">9.2%</span>
-                                    </div>
-                                </div>
-                                <span class="label-intel ${labelColor}">${label}</span>
-                            </div>
-                            <span class="text-[7px] px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-black">${score}/10 SCORE</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic">
-                            <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white font-black">${item.preco_entrada}</span></div>
-                            <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 font-black">${item.take_profit}</span></div>
-                            <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 font-black">${item.stop_loss}</span></div>
-                        </div>
-                        <div class="mb-4">
-                            <p class="text-[8px] text-blue-500 uppercase font-black italic mb-1 tracking-widest">Fato Relevante / News:</p>
-                            <p class="text-[10px] text-gray-300 leading-tight italic font-black">${newsDisplay}</p>
-                        </div>
-                        <div class="flex justify-between items-center pt-3 border-t border-white/5">
-                            <span class="text-[7px] text-gray-500 font-black uppercase">FONTE: ${item.fonte || 'ENGINE'}</span>
-                            <button class="${isAuto ? 'bg-green-600' : 'bg-[#2563eb]'} text-white text-[9px] px-6 py-2 rounded-full font-black italic">
-                                ${isAuto ? 'EXECUTADO (AUTO)' : 'EXECUTAR'}
-                            </button>
-                        </div>
-                    </div>`;
-                }).join(''); lucide.createIcons();
+    return `<div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px]">
+        <div class="flex justify-between items-start mb-1">
+            <div class="flex flex-col">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
+                    <div class="${isUp ? 'text-green-500' : 'text-red-500'} font-black italic flex items-center gap-1">
+                        <i data-lucide="${isUp ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>
+                        <span class="text-[10px]">9.2%</span>
+                    </div>
+                </div>
+                <span class="label-intel ${labelColor}">${label}</span>
+            </div>
+            <span class="text-[7px] px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-black">${score}/10 SCORE</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic">
+            <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase">Entrada</span><span class="text-[9px] text-white font-black">${item.preco_entrada}</span></div>
+            <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase">Alvo</span><span class="text-[9px] text-green-400 font-black">${item.take_profit}</span></div>
+            <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase">Stop</span><span class="text-[9px] text-red-400 font-black">${item.stop_loss}</span></div>
+        </div>
+        <div class="mb-4">
+            <p class="text-[8px] text-blue-500 uppercase font-black italic mb-1 tracking-widest">Fato Relevante / News:</p>
+            <p class="text-[10px] text-gray-300 leading-tight italic font-black">${newsDisplay}</p>
+        </div>
+        <div class="flex justify-between items-center pt-3 border-t border-white/5">
+            <span class="text-[7px] text-gray-500 font-black uppercase">FONTE: ${item.fonte || 'ENGINE'}</span>
+            <button class="${isAuto ? 'bg-green-600' : 'bg-[#2563eb]'} text-white text-[9px] px-6 py-2 rounded-full font-black italic">
+                ${isAuto ? 'EXECUTADO (AUTO)' : 'EXECUTAR'}
+            </button>
+        </div>
+    </div>`;
+}).join('');
             } catch(e) { console.error(e); }
         }
 
