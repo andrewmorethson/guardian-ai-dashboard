@@ -99,7 +99,7 @@
 
     <script>
         const CONFIG = { url: "https://puwjojeeuvtfzevkvzjd.supabase.co", key: "sb_publishable_o8XZmMMgw5l63TcPRdpmrA_T99K-eDX" };
-        let sbClient, currentFilter = 'TUDO', isPrivate = false, currentLimit = 10;
+        let sbClient, currentFilter = 'TUDO', isPrivate = false;
 
         async function updateMonitors() {
             try {
@@ -125,13 +125,19 @@
             if(wrapper.classList.contains('loading')) return;
             wrapper.classList.add('loading');
             try {
-                await sbClient.functions.invoke('analisador-de-noticias', { body: { symbol: 'BTCUSDT' } });
+                // Chamada via POST com body JSON para evitar erros de CORS preflight mal configurados
+                await sbClient.functions.invoke('analisador-de-noticias', { 
+                    method: 'POST',
+                    body: { symbol: 'BTCUSDT' } 
+                });
                 wrapper.classList.remove('loading');
                 wrapper.classList.add('success');
                 icon.setAttribute('data-lucide', 'check'); lucide.createIcons();
-                await fetchLatestSignals();
-            } catch(e) { wrapper.classList.remove('loading'); }
-            finally {
+                await fetchLatestSignals(); await fetchBanca();
+            } catch(e) { 
+                console.error("Erro Engine:", e);
+                wrapper.classList.remove('loading'); 
+            } finally {
                 setTimeout(() => {
                     wrapper.classList.remove('success', 'loading');
                     icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons();
@@ -143,39 +149,45 @@
             if(!confirm(`Executar 1% de risco em ${ativo}?`)) return;
             try {
                 const { data, error } = await sbClient.functions.invoke('executar-ordem', {
+                    method: 'POST',
                     body: { ativo, preco_entrada: entrada, stop_loss: stop }
                 });
                 if(error) throw error;
                 alert("Ordem executada na Binance!");
                 fetchBanca();
-            } catch(e) { alert("Erro: " + e.message); }
+            } catch(e) { alert("Erro Execução: " + e.message); }
         };
 
         async function fetchLatestSignals() {
             const container = document.getElementById('signal-container');
-            const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
-            if(!data) return;
+            const { data, error } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
+            if(error || !data) return;
 
             container.innerHTML = data.filter(i => {
                 const a = i.ativo.toUpperCase();
                 if(currentFilter === 'TUDO') return true;
                 if(currentFilter === 'CRIPTO') return a.includes('USDT');
+                if(currentFilter === 'USA') return a.includes('$') || ["AAPL", "NVDA"].includes(a);
+                if(currentFilter === 'B3') return /^[A-Z]{4}[0-9]{1,2}$/.test(a);
                 return false;
             }).slice(0, 10).map(item => `
                 <div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px] shadow-lg">
                     <div class="flex justify-between items-start">
-                        <div class="flex flex-col"><span class="text-2xl text-white font-black uppercase">${item.ativo}</span><span class="text-[7px] text-blue-500 font-black italic">ALPHA ENGINE</span></div>
-                        <span class="text-[7px] px-2 py-1 rounded bg-green-500/10 text-green-400 font-black">${item.score_confianca}/10 SCORE</span>
+                        <div class="flex flex-col">
+                            <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
+                            <span class="text-[7px] uppercase font-black italic text-blue-500 tracking-widest">ALPHA ENGINE</span>
+                        </div>
+                        <span class="text-[7px] px-2 py-1 rounded ${item.score_confianca >= 8 ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'} font-black">${item.score_confianca}/10 SCORE</span>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl text-center font-black italic text-[9px]">
-                        <div><span class="text-[6px] text-gray-500 uppercase">ENTRADA</span><br>${item.preco_entrada}</div>
-                        <div><span class="text-[6px] text-green-500 uppercase">ALVO</span><br>${item.take_profit}</div>
-                        <div><span class="text-[6px] text-red-500 uppercase">STOP</span><br>${item.stop_loss}</div>
+                    <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic text-[9px]">
+                        <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase font-black">ENTRADA</span>${item.preco_entrada}</div>
+                        <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase font-black tracking-widest">ALVO</span>${item.take_profit}</div>
+                        <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase font-black tracking-widest">STOP</span>${item.stop_loss}</div>
                     </div>
-                    <p class="text-[10px] text-gray-300 italic font-black">"${item.motivo_fato_relevante}"</p>
+                    <p class="text-[10px] text-gray-300 italic font-black leading-tight">"${item.motivo_fato_relevante}"</p>
                     <div class="flex justify-between items-center pt-3 mt-3 border-t border-white/5">
-                        <span class="text-[7px] text-gray-500 font-black uppercase">SOURCE: ${item.fonte}</span>
-                        <button onclick="window.executarOrdemReal('${item.ativo}', ${item.preco_entrada}, ${item.stop_loss})" class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic uppercase">Executar</button>
+                        <span class="text-[7px] text-gray-500 font-black uppercase tracking-widest">SOURCE: ${item.fonte || 'REUTERS'}</span>
+                        <button onclick="window.executarOrdemReal('${item.ativo}', ${item.preco_entrada}, ${item.stop_loss})" class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic uppercase transition-transform active:scale-95 shadow-neo">Executar</button>
                     </div>
                 </div>
             `).join('');
@@ -183,23 +195,35 @@
         }
 
         async function fetchBanca() {
-            const { data } = await sbClient.from('perfil_usuario').select('*').single();
-            if(data) {
-                const b = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
-                document.getElementById('home-balance').innerText = b;
-                document.getElementById('wallet-balance').innerText = b;
-                document.getElementById('w-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
-                document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
-                document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
-                document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
-                document.getElementById('count-in').innerText = data.count_in;
-                document.getElementById('count-win').innerText = data.count_win;
-                document.getElementById('count-loss').innerText = data.count_loss;
-            }
+            const { data, error } = await sbClient.from('perfil_usuario').select('*').single();
+            if(error || !data) return;
+            const b = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
+            document.getElementById('home-balance').innerText = b;
+            document.getElementById('wallet-balance').innerText = b;
+            document.getElementById('w-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
+            document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
+            document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
+            document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
+            document.getElementById('count-in').innerText = data.count_in;
+            document.getElementById('count-win').innerText = data.count_win;
+            document.getElementById('count-loss').innerText = data.count_loss;
+        }
+
+        async function fetchHistoryTable() {
+            const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
+            if(!data) return;
+            document.getElementById('history-body').innerHTML = data.map(o => `
+                <tr class="text-white font-black italic border-b border-white/5">
+                    <td class="p-4 uppercase tracking-tighter">${o.ativo}</td>
+                    <td class="p-4 text-center">
+                        <span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span>
+                    </td>
+                    <td class="p-4 text-right tracking-tighter">R$ ${Number(o.valor_resultado).toFixed(2)}</td>
+                </tr>`).join('');
         }
 
         window.updateFilter = function(c) { currentFilter = c; document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === c)); fetchLatestSignals(); };
-        window.switchTab = function(id) { document.querySelectorAll('.content-section').forEach(s => s.classList.toggle('active', s.id === `sec-${id}`)); document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.id === `nav-${id}`)); lucide.createIcons(); };
+        window.switchTab = function(id) { document.querySelectorAll('.content-section').forEach(s => s.classList.toggle('active', s.id === `sec-${id}`)); document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.id === `nav-${id}`)); if(id === 'wallet') fetchHistoryTable(); lucide.createIcons(); };
         window.togglePrivacy = function() { isPrivate = !isPrivate; document.querySelectorAll('.privacy-toggle').forEach(el => el.classList.toggle('privacy-hidden', isPrivate)); };
 
         window.onload = async () => {
@@ -207,6 +231,7 @@
             lucide.createIcons();
             await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
             setInterval(updateMonitors, 30000);
+            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
         };
     </script>
 </body>
