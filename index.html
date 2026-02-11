@@ -290,11 +290,16 @@
         function applyPrivacyUI() { document.querySelectorAll('.privacy-toggle').forEach(el => isPrivate ? el.classList.add('privacy-hidden') : el.classList.remove('privacy-hidden')); }
 
         async function init() {
-            sbClient = supabase.createClient(CONFIG.url, CONFIG.key);
-            lucide.createIcons();
-            await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
-            setInterval(updateMonitors, 30000);
-            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
+            // No seu window.onload:
+sbClient
+    .channel('any') // O nome pode ser qualquer um
+    .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'log_oportunidades' }, 
+        () => {
+            fetchLatestSignals(); // Isso aqui precisa rodar para o card aparecer
+        }
+    )
+    .subscribe();
         }
         window.onload = init;
     </script>
