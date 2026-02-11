@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guardian AI v5.2</title>
+    <title>Guardian AI v5.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -14,17 +14,12 @@
         main { padding: 16px; }
         .card-inner { background: rgba(22, 27, 34, 0.6); border: 1px solid var(--border-low); border-radius: var(--radius-inner); }
         .filter-btn { transition: 0.3s; border: 1px solid var(--border-low); color: #8b949e; display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 8px 14px; border-radius: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
-        .filter-btn.active[data-cat="TUDO"] { background: #2563eb; border-color: #2563eb; color: white; }
-        .filter-btn.active[data-cat="USA"] { background: #ef4444; border-color: #ef4444; color: white; }
-        .filter-btn.active[data-cat="B3"] { background: #22c55e; border-color: #22c55e; color: white; }
-        .filter-btn.active[data-cat="CRIPTO"] { background: #f59e0b; border-color: #f59e0b; color: white; }
-        
+        .filter-btn.active { background: #2563eb; border-color: #2563eb; color: white; }
         .refresh-wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: #161b22; border: 1px solid #30363d; cursor: pointer; transition: 0.3s; }
         .refresh-wrapper.loading i { animation: spin 1s linear infinite; color: #2563eb; }
         .refresh-wrapper.success { background: #2563eb; border-color: #2563eb; }
         .refresh-wrapper.success i { color: white !important; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
         .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid var(--border-low); z-index: 100; display: flex; justify-content: space-around; padding: 15px 0; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 9px; color: #8b949e; cursor: pointer; text-transform: uppercase; }
         .nav-item.active { color: var(--accent-primary); }
@@ -49,14 +44,6 @@
 
     <main>
         <section id="sec-home" class="content-section active space-y-4">
-            <div class="card-inner p-3 flex justify-between items-center border-l-4 border-blue-600 bg-blue-600/5">
-                <div><p class="text-[7px] text-blue-400 uppercase tracking-widest">Top Opportunities</p><p id="safety-status" class="text-[9px] text-white italic">Filtrando Melhores Scores</p></div>
-                <div id="loss-indicator" class="flex gap-2">
-                    <div id="dot-1" class="w-2.5 h-2.5 rounded-full bg-gray-700 transition-colors"></div>
-                    <div id="dot-2" class="w-2.5 h-2.5 rounded-full bg-gray-700 transition-colors"></div>
-                </div>
-            </div>
-
             <div class="bg-[#161b22] border border-[#30363d] rounded-[24px] p-5 shadow-2xl relative">
                 <div class="flex justify-between items-center mb-1">
                     <p class="text-[9px] uppercase text-blue-500 tracking-widest">Patrimônio Bruto</p>
@@ -72,23 +59,17 @@
 
             <div class="flex items-center justify-between gap-2 py-1">
                 <div class="flex gap-2 overflow-x-auto no-scrollbar">
-                    <button onclick="window.updateFilter('TUDO')" id="btn-TUDO" class="filter-btn active" data-cat="TUDO">Tudo</button>
-                    <button onclick="window.updateFilter('USA')" id="btn-USA" class="filter-btn" data-cat="USA">USA</button>
-                    <button onclick="window.updateFilter('B3')" id="btn-B3" class="filter-btn" data-cat="B3">B3</button>
-                    <button onclick="window.updateFilter('CRIPTO')" id="btn-CRIPTO" class="filter-btn" data-cat="CRIPTO">Cripto</button>
+                    <button onclick="window.updateFilter('TUDO')" class="filter-btn active" data-cat="TUDO">Tudo</button>
+                    <button onclick="window.updateFilter('USA')" class="filter-btn" data-cat="USA">USA</button>
+                    <button onclick="window.updateFilter('B3')" class="filter-btn" data-cat="B3">B3</button>
+                    <button onclick="window.updateFilter('CRIPTO')" class="filter-btn" data-cat="CRIPTO">Cripto</button>
                 </div>
                 <div id="refresh-wrapper" onclick="window.triggerGuardianEngine()" class="refresh-wrapper">
-                    <i id="refresh-icon" data-lucide="refresh-cw" class="w-4 h-4 text-gray-400 transition-colors"></i>
+                    <i id="refresh-icon" data-lucide="refresh-cw" class="w-4 h-4 text-gray-400"></i>
                 </div>
             </div>
 
             <div id="signal-container" class="grid grid-cols-1 gap-4"></div>
-
-            <div id="pagination-wrapper" class="pt-4 pb-8 text-center hidden">
-                <button onclick="window.loadMoreSignals()" class="bg-[#161b22] border border-[#30363d] px-8 py-3 rounded-full text-[9px] font-black italic text-gray-400 hover:text-white transition-all uppercase tracking-widest">
-                    Ver Mais Melhores Ativos
-                </button>
-            </div>
         </section>
 
         <section id="sec-wallet" class="content-section space-y-4">
@@ -97,7 +78,7 @@
                     <p class="text-[10px] text-blue-500 uppercase">Carteira Consolidada</p>
                     <button onclick="window.togglePrivacy()"><i id="privacy-icon-wallet" data-lucide="eye" class="w-4 h-4 text-gray-500"></i></button>
                 </div>
-                <h2 id="wallet-balance" class="text-4xl text-white italic tracking-tighter privacy-toggle mb-6">R$ 0.00</h2>
+                <h2 id="wallet-balance" class="text-4xl text-white italic tracking-tighter privacy-toggle mb-6 font-black">R$ 0.00</h2>
                 <div class="grid grid-cols-2 gap-3">
                     <div class="card-inner p-3 flex flex-col"><span class="text-[7px] text-gray-500 uppercase">Bruto</span><span id="w-bruto" class="text-xs privacy-toggle">R$ 0.00</span></div>
                     <div class="card-inner p-3 flex flex-col border-l-2 border-green-500"><span class="text-[7px] text-green-500 uppercase">Líquido</span><span id="w-liquido" class="text-xs privacy-toggle">R$ 0.00</span></div>
@@ -105,12 +86,8 @@
                     <div class="card-inner p-3 flex flex-col border-l-2 border-purple-500"><span class="text-[7px] text-purple-500 uppercase">Reserva</span><span id="w-reserve" class="text-xs privacy-toggle">R$ 0.00</span></div>
                 </div>
             </div>
-            
-            <div class="flex items-center gap-2 px-1 mt-4"><i data-lucide="history" class="w-3 h-3 text-blue-500"></i><p class="text-[9px] uppercase font-black text-gray-400 italic tracking-widest">Histórico de Transações</p></div>
             <div class="bg-[#161b22] border border-[#30363d] rounded-2xl overflow-hidden">
-                <table class="w-full text-[10px] text-left">
-                    <tbody id="history-body" class="divide-y divide-white/5"></tbody>
-                </table>
+                <table class="w-full text-[10px] text-left"><tbody id="history-body" class="divide-y divide-white/5"></tbody></table>
             </div>
         </section>
     </main>
@@ -122,29 +99,23 @@
 
     <script>
         const CONFIG = { url: "https://puwjojeeuvtfzevkvzjd.supabase.co", key: "sb_publishable_o8XZmMMgw5l63TcPRdpmrA_T99K-eDX" };
-        let sbClient, currentFilter = 'TUDO', isPrivate = false;
-        let currentLimit = 10;
+        let sbClient, currentFilter = 'TUDO', isPrivate = false, currentLimit = 10;
 
         async function updateMonitors() {
             try {
-                const resUSD = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
-                const dataUSD = await resUSD.json();
-                document.getElementById('usd-price').innerText = `R$ ${Number(dataUSD.USDBRL.bid).toFixed(2)}`;
-                const [resBTC, resETH] = await Promise.all([
-                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT'),
-                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT')
+                const resUSD = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL').then(r => r.json());
+                document.getElementById('usd-price').innerText = `R$ ${Number(resUSD.USDBRL.bid).toFixed(2)}`;
+                const [btc, eth] = await Promise.all([
+                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT').then(r => r.json()),
+                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT').then(r => r.json())
                 ]);
-                const dataBTC = await resBTC.json();
-                const dataETH = await resETH.json();
-                document.getElementById('btc-price').innerText = `$ ${Number(dataBTC.price).toFixed(0)}`;
-                document.getElementById('eth-price').innerText = `$ ${Number(dataETH.price).toFixed(0)}`;
+                document.getElementById('btc-price').innerText = `$ ${Number(btc.price).toFixed(0)}`;
+                document.getElementById('eth-price').innerText = `$ ${Number(eth.price).toFixed(0)}`;
+                
                 const agora = new Date();
                 const isOpen = agora.getDay() >= 1 && agora.getDay() <= 5 && agora.getHours() >= 10 && agora.getHours() < 18;
-                const statusDot = document.getElementById('conn-status');
-                const statusText = document.getElementById('market-status-text');
-                statusDot.style.backgroundColor = isOpen ? '#4ade80' : '#ef4444';
-                statusText.innerText = isOpen ? 'OPEN' : 'CLOSED';
-                statusText.className = `text-[7px] ${isOpen ? 'text-green-400' : 'text-red-500'} uppercase tracking-tighter`;
+                document.getElementById('conn-status').className = `w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-green-500' : 'bg-red-500'}`;
+                document.getElementById('market-status-text').innerText = isOpen ? 'OPEN' : 'CLOSED';
             } catch (e) {}
         }
 
@@ -154,24 +125,28 @@
             if(wrapper.classList.contains('loading')) return;
             wrapper.classList.add('loading');
             try {
-                const assets = ["BTCUSDT", "ETHUSDT", "PETR4", "VALE3", "AAPL", "NVDA"];
-                const symbol = assets[Math.floor(Math.random() * assets.length)];
-                await sbClient.functions.invoke('analisador-de-noticias', { body: { symbol } });
+                await sbClient.functions.invoke('analisador-de-noticias', { body: { symbol: 'BTCUSDT' } });
                 wrapper.classList.remove('loading');
                 wrapper.classList.add('success');
-                icon.setAttribute('data-lucide', 'check');
-                lucide.createIcons();
-                await fetchLatestSignals(); await fetchBanca();
+                icon.setAttribute('data-lucide', 'check'); lucide.createIcons();
+                await fetchLatestSignals();
             } catch(e) { wrapper.classList.remove('loading'); }
-            finally { setTimeout(() => { wrapper.classList.remove('success'); icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons(); }, 1500); }
+            finally {
+                setTimeout(() => {
+                    wrapper.classList.remove('success', 'loading');
+                    icon.setAttribute('data-lucide', 'refresh-cw'); lucide.createIcons();
+                }, 1500);
+            }
         };
 
         window.executarOrdemReal = async function(ativo, entrada, stop) {
             if(!confirm(`Executar 1% de risco em ${ativo}?`)) return;
             try {
-                const { data, error } = await sbClient.functions.invoke('executar-ordem', { body: { ativo, preco_entrada: entrada, stop_loss: stop } });
+                const { data, error } = await sbClient.functions.invoke('executar-ordem', {
+                    body: { ativo, preco_entrada: entrada, stop_loss: stop }
+                });
                 if(error) throw error;
-                alert("Ordem enviada para Binance!");
+                alert("Ordem executada na Binance!");
                 fetchBanca();
             } catch(e) { alert("Erro: " + e.message); }
         };
@@ -179,70 +154,52 @@
         async function fetchLatestSignals() {
             const container = document.getElementById('signal-container');
             const { data } = await sbClient.from('log_oportunidades').select('*').order('created_at', { ascending: false });
-            if(!data || data.length === 0) {
-                container.innerHTML = '<div class="p-10 text-center card-inner border-dashed border-2 border-[#30363d] text-[9px] text-gray-500 uppercase font-black italic tracking-widest">Searching Best Alpha...</div>';
-                return;
-            }
-            const filtered = data.filter(i => {
-                const asset = i.ativo.toUpperCase();
-                if(currentFilter === 'TUDO') return true;
-                if(currentFilter === 'CRIPTO') return asset.includes('USDT') || ["BTC", "ETH"].includes(asset);
-                if(currentFilter === 'USA') return asset.includes('$') || ["AAPL", "NVDA"].includes(asset);
-                if(currentFilter === 'B3') return /^[A-Z]{4}[0-9]{1,2}$/.test(asset);
-                return false;
-            }).slice(0, currentLimit);
+            if(!data) return;
 
-            container.innerHTML = filtered.map(item => `
+            container.innerHTML = data.filter(i => {
+                const a = i.ativo.toUpperCase();
+                if(currentFilter === 'TUDO') return true;
+                if(currentFilter === 'CRIPTO') return a.includes('USDT');
+                return false;
+            }).slice(0, 10).map(item => `
                 <div class="bg-[#161b22] border border-[#30363d] p-5 rounded-[24px] shadow-lg">
                     <div class="flex justify-between items-start">
-                        <div class="flex flex-col">
-                            <span class="text-2xl text-white font-black uppercase tracking-tighter">${item.ativo}</span>
-                            <span class="text-[7px] uppercase font-black italic text-blue-500 tracking-widest">ALPHA SCORE ENGINE</span>
-                        </div>
-                        <span class="text-[7px] px-2 py-1 rounded ${item.score_confianca >= 8 ? 'text-green-400 bg-green-500/10' : 'text-yellow-400 bg-yellow-500/10'} font-black">${item.score_confianca}/10 SCORE</span>
+                        <div class="flex flex-col"><span class="text-2xl text-white font-black uppercase">${item.ativo}</span><span class="text-[7px] text-blue-500 font-black italic">ALPHA ENGINE</span></div>
+                        <span class="text-[7px] px-2 py-1 rounded bg-green-500/10 text-green-400 font-black">${item.score_confianca}/10 SCORE</span>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl border border-white/5 text-center font-black italic text-[9px]">
-                        <div class="flex flex-col"><span class="text-[6px] text-gray-500 uppercase font-black">ENTRADA</span>${item.preco_entrada}</div>
-                        <div class="flex flex-col"><span class="text-[6px] text-green-500 uppercase font-black">ALVO</span>${item.take_profit}</div>
-                        <div class="flex flex-col"><span class="text-[6px] text-red-500 uppercase font-black">STOP</span>${item.stop_loss}</div>
+                    <div class="grid grid-cols-3 gap-2 my-4 bg-black/20 p-3 rounded-xl text-center font-black italic text-[9px]">
+                        <div><span class="text-[6px] text-gray-500 uppercase">ENTRADA</span><br>${item.preco_entrada}</div>
+                        <div><span class="text-[6px] text-green-500 uppercase">ALVO</span><br>${item.take_profit}</div>
+                        <div><span class="text-[6px] text-red-500 uppercase">STOP</span><br>${item.stop_loss}</div>
                     </div>
-                    <p class="text-[10px] text-gray-300 italic font-black leading-tight">"${item.motivo_fato_relevante}"</p>
+                    <p class="text-[10px] text-gray-300 italic font-black">"${item.motivo_fato_relevante}"</p>
                     <div class="flex justify-between items-center pt-3 mt-3 border-t border-white/5">
-                        <span class="text-[7px] text-gray-500 font-black uppercase tracking-widest">SOURCE: ${item.fonte || 'REUTERS'}</span>
-                        <button onclick="window.executarOrdemReal('${item.ativo}', ${item.preco_entrada}, ${item.stop_loss})" class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic uppercase transition-transform active:scale-95 shadow-neo">Executar</button>
+                        <span class="text-[7px] text-gray-500 font-black uppercase">SOURCE: ${item.fonte}</span>
+                        <button onclick="window.executarOrdemReal('${item.ativo}', ${item.preco_entrada}, ${item.stop_loss})" class="bg-[#2563eb] text-white text-[9px] px-6 py-2 rounded-full font-black italic uppercase">Executar</button>
                     </div>
-                </div>`).join('');
+                </div>
+            `).join('');
             lucide.createIcons();
         }
 
         async function fetchBanca() {
             const { data } = await sbClient.from('perfil_usuario').select('*').single();
             if(data) {
-                const bal = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
-                document.getElementById('home-balance').innerText = bal;
-                document.getElementById('wallet-balance').innerText = bal;
-                document.getElementById('count-in').innerText = data.count_in || 0;
-                document.getElementById('count-win').innerText = data.count_win || 0;
-                document.getElementById('count-loss').innerText = data.count_loss || 0;
+                const b = `R$ ${Number(data.saldo_atual).toFixed(2)}`;
+                document.getElementById('home-balance').innerText = b;
+                document.getElementById('wallet-balance').innerText = b;
                 document.getElementById('w-bruto').innerText = `R$ ${Number(data.lucro_bruto).toFixed(2)}`;
                 document.getElementById('w-liquido').innerText = `R$ ${Number(data.lucro_total).toFixed(2)}`;
                 document.getElementById('w-reinvest').innerText = `R$ ${Number(data.valor_reinvestimento).toFixed(2)}`;
                 document.getElementById('w-reserve').innerText = `R$ ${Number(data.total_guardado).toFixed(2)}`;
+                document.getElementById('count-in').innerText = data.count_in;
+                document.getElementById('count-win').innerText = data.count_win;
+                document.getElementById('count-loss').innerText = data.count_loss;
             }
         }
 
-        async function fetchHistoryTable() {
-            const { data } = await sbClient.from('historico_operacoes').select('*').order('executado_em', { ascending: false }).limit(10);
-            if(data) document.getElementById('history-body').innerHTML = data.map(o => `
-                <tr class="text-white font-black italic border-b border-white/5">
-                    <td class="p-4 uppercase tracking-tighter">${o.ativo}</td>
-                    <td class="p-4 text-center"><span class="px-2 py-0.5 rounded text-[8px] ${o.resultado === 'WIN' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-400'}">${o.resultado}</span></td>
-                    <td class="p-4 text-right tracking-tighter">R$ ${Number(o.valor_resultado).toFixed(2)}</td>
-                </tr>`).join('');
-        }
-
-        window.updateFilter = function(cat) { currentFilter = cat; document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-cat') === cat)); fetchLatestSignals(); };
-        window.switchTab = function(id) { document.querySelectorAll('.content-section').forEach(s => s.classList.toggle('active', s.id === `sec-${id}`)); document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.id === `nav-${id}`)); if(id === 'wallet') fetchHistoryTable(); lucide.createIcons(); };
+        window.updateFilter = function(c) { currentFilter = c; document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === c)); fetchLatestSignals(); };
+        window.switchTab = function(id) { document.querySelectorAll('.content-section').forEach(s => s.classList.toggle('active', s.id === `sec-${id}`)); document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.id === `nav-${id}`)); lucide.createIcons(); };
         window.togglePrivacy = function() { isPrivate = !isPrivate; document.querySelectorAll('.privacy-toggle').forEach(el => el.classList.toggle('privacy-hidden', isPrivate)); };
 
         window.onload = async () => {
@@ -250,7 +207,6 @@
             lucide.createIcons();
             await Promise.all([fetchLatestSignals(), fetchBanca(), updateMonitors()]);
             setInterval(updateMonitors, 30000);
-            sbClient.channel('sync').on('postgres_changes', { event: '*', schema: 'public' }, () => { fetchLatestSignals(); fetchBanca(); }).subscribe();
         };
     </script>
 </body>
