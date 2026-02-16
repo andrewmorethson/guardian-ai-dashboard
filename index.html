@@ -322,9 +322,9 @@
         <div class="card">
           <h2>Status</h2>
           <div class="kpi" style="grid-template-columns: repeat(2, minmax(0,1fr));">
-            <div class="k"><div class="t">Resumo</div><div class="v" id="kSignal">—</div></div>
-            <div class="k"><div class="t">Último tick</div><div class="v" id="kPrice">—</div></div>
-          </div>
+  <div class="k"><div class="t">Dólar (USDT/BRL)</div><div class="v" id="kUsdBrl">—</div></div>
+  <div class="k"><div class="t">Atualizado</div><div class="v" id="kUsdBrlTs">—</div></div>
+</div>
           <div class="k" style="margin-top:10px">
             <div class="t">Detalhes</div>
             <div class="v mono" style="font-size:13px" id="kReasons">—</div>
@@ -389,6 +389,11 @@
     running:false,
     timer:null,
 
+    // ✅ USD/BRL (proxy via USDTBRL)
+    usdBrl: null,
+    usdBrlTs: 0,
+    usdTimer: null,
+
     dayAnchor: 100,
     cash:100,
     grossWinUsd:0,
@@ -426,10 +431,19 @@
     dot: $('dot'), runLabel: $('runLabel'), tickLabel: $('tickLabel'),
     btnStart: $('btnStart'), btnStop: $('btnStop'), btnOnce: $('btnOnce'), btnReset: $('btnReset'), btnUnlock: $('btnUnlock'), btnTestMode: $('btnTestMode'),
     lockBanner: $('lockBanner'), lockReason: $('lockReason'),
+
     kCash: $('kCash'), kEquity: $('kEquity'), kPL: $('kPL'), kDD: $('kDD'),
     kRealized: $('kRealized'), kGrossWin: $('kGrossWin'), kGrossLoss: $('kGrossLoss'), kUnrealized: $('kUnrealized'),
     kWL: $('kWL'), kStreak: $('kStreak'), kOpen: $('kOpen'), kLock: $('kLock'),
-    kPrice: $('kPrice'), kSignal: $('kSignal'), kReasons: $('kReasons'),
+
+    // ✅ status cards (agora dólar + timestamp)
+    kUsdBrl: $('kUsdBrl'),
+    kUsdBrlTs: $('kUsdBrlTs'),
+
+    // detalhes
+    kPrice: $('kPrice'),           // mantém como “Tick HH:MM:SS”
+    kReasons: $('kReasons'),       // detalhes (top score, etc)
+
     askList: $('askList'), openList: $('openList'), openCount: $('openCount'),
     profileLabel: $('profileLabel'), profileHint: $('profileHint'), profileSeg: $('profileSeg'),
     logs: $('logs'), lastTickSmall: $('lastTickSmall'),
@@ -654,7 +668,7 @@
   }
 
   // =============================
-  // DATA (timeout + exchangeInfo)
+  // DATA (timeout + exchangeInfo + USDTBRL)
   // =============================
   async function fetchJsonWithTimeout(url, timeoutMs=9000){
     const ctrl = new AbortController();
@@ -724,6 +738,27 @@
       v.push(Number(k[5]));
     }
     return {t,o,h,l,c,v};
+  }
+
+  // ✅ USD/BRL via USDTBRL (proxy)
+  async function fetchUSDTBRL(){
+    const url = `https://api.binance.com/api/v3/ticker/price?symbol=USDTBRL`;
+    const res = await fetchJsonWithTimeout(url, 8000);
+    if (!res.ok) throw new Error(`USDTBRL HTTP ${res.status}`);
+    const data = await res.json();
+    const p = Number(data?.price);
+    if (!Number.isFinite(p)) throw new Error('Preço USDTBRL inválido');
+    return p;
+  }
+
+  async function updateUsdBrl(){
+    try{
+      const p = await fetchUSDTBRL();
+      S.usdBrl = p;
+      S.usdBrlTs = now();
+    }catch(e){
+      // sem log pra não poluir
+    }
   }
 
   // =============================
@@ -871,7 +906,6 @@
 
   function openTradeFromIdea(idea, cfg, riskMult = 1.0){
     const id = uid();
-
     const riskUsd = S.cash * (cfg.riskPct/100) * riskMult;
     const qty = calcPositionQty(idea.entry, idea.stop, riskUsd);
 
@@ -898,7 +932,7 @@
       partialDone: false,
     };
     S.open.push(trade);
-    log(`OPEN ${trade.side} ${trade.symbol} @ ${trade.entry.toFixed(2)} | stop ${trade.stop.toFixed(2)} | target ${trade.target.toFixed(2)} | qty ${trade.qty.toFixed(6)} | score ${idea.score.toFixed(2)} | RISKx ${riskMult.toFixed(2)}x`);
+    log(`OPEN ${trade.side} ${trade.symbol} @ ${trade.entry.toFixed(4)} | stop ${trade.stop.toFixed(4)} | target ${trade.target.toFixed(4)} | qty ${trade.qty.toFixed(6)} | score ${idea.score.toFixed(2)} | RISKx ${riskMult.toFixed(2)}x`);
   }
 
   function applyPnL(qty, side, entry, exitPrice){
@@ -933,7 +967,7 @@
     const pnl = applyPnL(trade.qty, trade.side, trade.entry, exitPrice);
     bookRealized(pnl);
     S.open = S.open.filter(t => t.id !== trade.id);
-    log(`CLOSE ${trade.side} ${trade.symbol} @ ${exitPrice.toFixed(2)} | PnL ${fmtUSD(pnl)} | ${reason}`);
+    log(`CLOSE ${trade.side} ${trade.symbol} @ ${exitPrice.toFixed(4)} | PnL ${fmtUSD(pnl)} | ${reason}`);
   }
 
   function closePartial(trade, exitPrice, pct, reason){
@@ -947,7 +981,7 @@
     trade.qty = trade.qty - qtyClose;
     trade.riskUsd = trade.riskUsd * (1 - pctClamped);
 
-    log(`PARTIAL ${trade.side} ${trade.symbol} @ ${exitPrice.toFixed(2)} | ${Math.round(pctClamped*100)}% | PnL ${fmtUSD(pnl)} | ${reason}`);
+    log(`PARTIAL ${trade.side} ${trade.symbol} @ ${exitPrice.toFixed(4)} | ${Math.round(pctClamped*100)}% | PnL ${fmtUSD(pnl)} | ${reason}`);
 
     if (trade.qty <= 1e-10){
       S.open = S.open.filter(t => t.id !== trade.id);
@@ -977,16 +1011,12 @@
     updateUI();
   }
 
-  function updateOpenTrades(lastPrice, cfg, currentKlineTs){
+  function updateOpenTrades(cfg, currentKlineTs){
     const barMs = intervalToMs(cfg.interval);
 
     for (const t of [...S.open]){
-      if (typeof lastPrice !== 'number') continue;
-      if (t.symbol && S.lastPrices[t.symbol] != null){
-        // garante que cada trade use o preço do seu símbolo (se o caller passou outro)
-        lastPrice = S.lastPrices[t.symbol];
-      }
-      const price = lastPrice;
+      const price = S.lastPrices[t.symbol];
+      if (typeof price !== 'number') continue;
 
       if (t.side === 'BUY') t.peak = Math.max(t.peak, price);
       else t.peak = Math.min(t.peak, price);
@@ -1062,7 +1092,6 @@
       return;
     }
 
-    // ✅ importante: AGORA aceita (não é bloqueado pelo guard do addPending)
     if (cfg.noRepeat && !canPassTradeGuard(p.key)){
       log(`🛑 Aceite bloqueado (repetido): ${p.key}`);
       return;
@@ -1097,10 +1126,9 @@
     }
 
     S.lastTickTs = now();
-    el.tickLabel.textContent = `Último tick: ${new Date(S.lastTickTs).toLocaleTimeString('pt-BR',{hour12:false})}`;
+    el.tickLabel.textContent = `Último tick: ${ts(S.lastTickTs)}`;
     el.lastTickSmall.textContent = el.tickLabel.textContent;
 
-    // antes de puxar dados, faz manutenção de lock/DD
     const gate0 = canTrade(cfg);
     if (!gate0.ok){
       S.lockReason = gate0.reason;
@@ -1119,6 +1147,7 @@
       try {
         const kl = await fetchKlines(symbol, cfg.interval, cfg.limit);
         S.lastKlinesMap[symbol] = kl;
+
         const series = parseKlines(kl);
         const currentKlineTs = series.t[series.t.length-1] || now();
 
@@ -1129,8 +1158,8 @@
         S.lastScores[symbol] = dec.score;
         S.lastReasonsMap[symbol] = dec.reasons;
 
-        // ✅ update trades do símbolo
-        updateOpenTrades(dec.last, cfg, currentKlineTs);
+        // ✅ gerencia trades abertos (mesmo se HOLD)
+        updateOpenTrades(cfg, currentKlineTs);
 
         const gate = canTrade(cfg);
         if (!gate.ok){
@@ -1138,6 +1167,7 @@
           break;
         }
 
+        // ✅ HOLD => não entra
         if (dec.signal === 'HOLD' || !dec.atr || dec.score < SCORE_MIN){
           if (cfg.perSymbolDelayMs) await sleep(cfg.perSymbolDelayMs);
           continue;
@@ -1184,7 +1214,7 @@
             markTradeGuard(key);
           } else {
             addPending(idea);
-            // ✅ NÃO marca guard aqui (permite aceitar depois)
+            // ✅ não marca guard aqui para permitir aceitar depois
           }
         }
 
@@ -1282,30 +1312,26 @@
     const profName = (PROFILE_PRESETS[S.runningProfile]?.name) || '-';
     el.profileLabel.textContent = `Perfil (rodando): ${S.running ? profName : '-'}`;
 
-    // resumo multi
-    const symbols = cfg.symbols || [];
-    const buys = symbols.filter(s => S.lastSignals[s] === 'BUY').length;
-    const sells = symbols.filter(s => S.lastSignals[s] === 'SELL').length;
-    const holds = symbols.filter(s => S.lastSignals[s] === 'HOLD').length;
+    // ✅ Card do dólar (sem HOLD)
+    if (el.kUsdBrl){
+      el.kUsdBrl.textContent = (typeof S.usdBrl === 'number') ? `R$ ${S.usdBrl.toFixed(4)}` : '—';
+    }
+    if (el.kUsdBrlTs){
+      el.kUsdBrlTs.textContent = S.usdBrlTs ? ts(S.usdBrlTs) : '—';
+    }
 
-    el.kSignal.textContent = symbols.length > 1
-      ? `Multi (${symbols.length}): BUY ${buys} · SELL ${sells} · HOLD ${holds}`
-      : `${symbols[0] || '—'}: ${(S.lastSignals[symbols[0]]||'—')} (score ${(S.lastScores[symbols[0]]||0).toFixed ? (S.lastScores[symbols[0]]||0).toFixed(2) : '—'})`;
-
+    // ✅ “Tick” continua no outro card
     el.kPrice.textContent = `Tick ${ts(S.lastTickTs || now())}`;
 
-    const top = symbols
-      .map(s => ({s, score: S.lastScores[s]}))
-      .filter(x => typeof x.score === 'number')
-      .sort((a,b) => b.score - a.score)[0];
+    // ✅ Detalhes: mostra só trades abertos (o que "entrou"), sem HOLD
+    const openBuy = S.open.filter(t => t.side === 'BUY').length;
+    const openSell = S.open.filter(t => t.side === 'SELL').length;
 
-    if (top){
-      const r = S.lastReasonsMap[top.s] || [];
-      const p = S.lastPrices[top.s];
-      el.kReasons.textContent = `${top.s} · preço ${typeof p==='number' ? p.toFixed(4) : '—'} · score ${top.score.toFixed(2)} :: ${r.slice(0,10).join(' | ')}`;
-    } else {
-      el.kReasons.textContent = '—';
-    }
+    const openSyms = [...new Set(S.open.map(t => t.symbol))];
+    const openSymsTxt = openSyms.length ? openSyms.join(', ') : 'nenhum';
+
+    el.kReasons.textContent =
+      `Entradas abertas: BUY ${openBuy} · SELL ${openSell} | Símbolos: ${openSymsTxt}`;
 
     renderPending();
     renderOpen();
@@ -1425,6 +1451,13 @@
     S.runtimeCfg = getCfg();
     S.runningProfile = S.profile;
     S.running = true;
+
+    // ✅ liga timer do dólar se ainda não existir
+    if (!S.usdTimer){
+      updateUsdBrl();
+      S.usdTimer = setInterval(updateUsdBrl, 10_000);
+    }
+
     log(`Robô ligado. Loop: ${S.runtimeCfg.loopSec}s | Modo: ${S.runtimeCfg.mode} | Perfil: ${PROFILE_PRESETS[S.runningProfile].name} | Símbolos: ${S.runtimeCfg.symbols.length}`);
     tick();
     S.timer = setInterval(tick, S.runtimeCfg.loopSec*1000);
@@ -1503,6 +1536,11 @@
 
   // init
   setProfile(S.profile);
+
+  // ✅ inicia dólar ao carregar
+  updateUsdBrl();
+  S.usdTimer = setInterval(updateUsdBrl, 10_000);
+
   log('App pronto. Clique em "Ligar Robô" ou "Rodar 1x".');
   updateUI();
 
@@ -1521,5 +1559,6 @@
   window.guardian = { tick, setProfile, getCfg: () => getCfg() };
 })();
 </script>
+
 </body>
 </html>
